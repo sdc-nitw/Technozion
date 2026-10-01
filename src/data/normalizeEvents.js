@@ -16,9 +16,9 @@ function parseContacts(raw, email) {
     return emailClean ? [{ name: "Event POC", email: emailClean }] : [];
   }
   const segments = raw.split(/[\n|;,]+|\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
-  const contacts = [];
   const stripName = (t) =>
     t.replace(PHONE_RE, "").replace(/\+?91\b/, "").replace(/^\s*\d+[.)]\s*/, "").replace(/[-:,()[\]]/g, " ").replace(/\s+/g, " ").trim();
+  const contacts = [];
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
     const m = seg.match(PHONE_RE);
@@ -88,7 +88,7 @@ function normalizeEvent(raw, index = 0) {
     totalCost: raw.totalCost !== undefined ? raw.totalCost : null,
     cashPrize: raw.cashPrize || raw.cash_prize || "",
     judgingCriteria: raw.judgingCriteria || (raw.overview && raw.overview.judging_criteria) || "Coming Soon...",
-    imgsrc: raw.imgsrc || "",
+    imgsrc: (raw.imgsrc || raw["Poster"] || "").toString().trim(),
     glink: raw.glink || "",
     venue: raw.venue || "",
     registrationOpen: raw.registrationOpen !== false,
