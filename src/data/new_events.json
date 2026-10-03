@@ -49,8 +49,8 @@
     "type": "Competition",
     "teamSize": "1-4",
     "duration": "3-4 hours",
-    "imgsrc": "/posters26/DEFCON.png",
-    "poster": "/posters26/DEFCON.png",
+    "imgsrc": "/posters26/DEFCON.jpg",
+    "poster": "/posters26/DEFCON.jpg",
     "description": "A live attack-and-defense cybersecurity hackathon. Every team is assigned a machine to patch and protect while simultaneously probing and compromising rival team targets across a live local network.",
     "rules": "Round 1 (Fortify): Inspect and patch assigned machine. Round 2 (Attack): Network opens for offensive exploitation. No DoS or attack on competitor host workstations allowed.",
     "poc": "Aaditya Shukla (9119720950)"
@@ -301,8 +301,8 @@
     "type": "Game",
     "teamSize": "2",
     "duration": "2 Days",
-    "imgsrc": "/posters26/CSES_ARCADE.png",
-    "poster": "/posters26/CSES_ARCADE.png",
+    "imgsrc": "/posters26/CSES_ARCADE.jpg",
+    "poster": "/posters26/CSES_ARCADE.jpg",
     "description": "Two-day hybrid event beginning with an interactive gaming arcade showcase, transitioning into an intensive Reinforcement Learning (RL) hackathon to train an agent capable of mastering and beating the featured games.",
     "rules": "Games code released at 6 PM Day 1. Online development until 9 AM Day 2, followed by on-site final training and presentations. Scored primarily on test win-rate.",
     "poc": "Don Chacko (+91 7356106869), Dhruv Bhatia (+91 8454042997)"
