@@ -20,22 +20,32 @@ body {
   background-color: #020928;
 }
 
+/* Custom Neon Cyan Scrollbar */
 ::-webkit-scrollbar {
-  width: 0.6rem;
+  width: 0.5rem;
+  height: 0.5rem;
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: #f4d4d8;
+  background: #020928;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #ca85b8;
+  background: #06b6d4;
   border-radius: 1rem;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #d987c3;
+  background: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.95);
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #06b6d4 #020928;
 }
