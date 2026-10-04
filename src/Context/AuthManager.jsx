@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
@@ -18,6 +18,22 @@ const readStoredUser = () => {
   try { localStorage.removeItem('user_info') } catch {}
   return null
 }
+const persistSession = (data) => {
+  try {
+    localStorage.setItem('user_info', JSON.stringify(data.user))
+    localStorage.setItem('token', data.token)
+  } catch (err) {
+    console.warn('Could not persist session:', err)
+  }
+}
+const clearSession = () => {
+  try {
+    localStorage.removeItem('user_info')
+    localStorage.removeItem('token')
+  } catch (err) {
+    console.warn('Could not clear session:', err)
+  }
+}
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(readStoredUser)
   const [loading, setLoading] = useState(false)
@@ -35,8 +51,7 @@ const AuthProvider = ({ children }) => {
       })
       const data = await res.json()
       if (res.ok) {
-        localStorage.setItem('user_info', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token)
+        persistSession(data)
         setUser(data.user)
         navigate('/')
       } else {
@@ -44,8 +59,8 @@ const AuthProvider = ({ children }) => {
         notify(data.message || 'Login failed', { variant: 'error' })
       }
     } catch (err) {
-  console.log(err)
-  notify('Something went wrong during login', { variant: 'error' })
+    console.log(err)
+    notify('Something went wrong during login', { variant: 'error' })
     }
     finally { setLoading(false) }
   }
@@ -68,7 +83,8 @@ const AuthProvider = ({ children }) => {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
+      let data = {};
+      try { data = await res.json(); } catch {}
       if (!res.ok || !data.secure_url) {
         const err = new Error('File upload failed. Please try again.');
         err.isUpload = true;
@@ -134,8 +150,7 @@ const AuthProvider = ({ children }) => {
 
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem("user_info", JSON.stringify(data.user));
-      localStorage.setItem("token", data.token);
+      persistSession(data);
       setUser(data.user);
       notify('Registration successful!', { variant: 'success' })
       navigate("/");
@@ -145,7 +160,7 @@ const AuthProvider = ({ children }) => {
     }
   } catch (err) {
     console.log(err);
-    notify('Something went wrong during registration.', { variant: 'error' })
+    notify(err.isUpload ? err.message : 'Something went wrong during registration.',{ variant: 'error' })
   } finally {
     setLoading(false);
   }
@@ -163,8 +178,7 @@ const AuthProvider = ({ children }) => {
     }
 
     // confirmed
-    localStorage.removeItem('user_info')
-    localStorage.removeItem('token')
+    clearSession()
     setUser(null)
     setPendingLogout(false)
     notify('Logged out', { variant: 'success' })

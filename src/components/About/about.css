@@ -79,7 +79,7 @@ width: 100%;
 }
 
 .youtube-link {
-  width: calc(fit-content+5%);
+  width: fit-content;
   height: fit-content;
   padding: 15px;
   border-radius: 5px;

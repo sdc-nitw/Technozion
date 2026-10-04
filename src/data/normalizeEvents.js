@@ -1,4 +1,4 @@
-const PHONE_RE = /(?:\+?91[\s-]*)?([6-9]\d{4}[\s-]?\d{5})/;
+const PHONE_RE = /(?:\+?91[\s-]*)?([6-9](?:[\s-]?\d){9})/;
 const EMPTY_VALUES = /^(none|nil|n\/?a|not applicable|na|-|tbd|coming soon\.*)$/i;
 const clean = (v) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "");
 const slugify = (s) =>
@@ -6,10 +6,10 @@ const slugify = (s) =>
 
 function parseContacts(raw) {
   if (typeof raw !== "string" || !raw.trim()) return [];
-  const segments = raw.split(/[\n|;]+|\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
+  const segments = raw.split(/[\n|;,]+|\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
   const contacts = [];
   const stripName = (t) =>
-    t.replace(PHONE_RE, "").replace(/\+?91\b/, "").replace(/[-:,()]/g, " ").replace(/\s+/g, " ").trim();
+    t.replace(PHONE_RE, "").replace(/\+?91\b/, "").replace(/^\s*\d+[.)]\s*/, "").replace(/[-:,()[\]]/g, " ").replace(/\s+/g, " ").trim();
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
     const m = seg.match(PHONE_RE);

@@ -2,13 +2,10 @@ import React, { useEffect, useState } from 'react';
 import './team.css'; 
 import { WebCanvas } from "../bg_animation/bg_animate";
 import Teams from './Teams.png';
-import { motion } from 'framer-motion';
-import { MdEmail } from "react-icons/md";
 import TeamCrad from "./TeamCrad";
 
 export const TeamContent = () => {
   const [data, setData] = useState([]);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     fetch('/TeamData.json')
@@ -17,11 +14,7 @@ export const TeamContent = () => {
         setData(data);
       }) 
       .catch((error) => console.error('Error fetching JSON:', error));
-    
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    }, []);
 
   return (
     <div className="list">

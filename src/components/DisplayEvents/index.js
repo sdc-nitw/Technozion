@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import './index.css'; // Optional: for styling if you want to add CSS
 import Carousel from '../carousel/carousel';
+import { API_URL } from '../../config';
 
 export function Displayevents() {
   const location = useLocation();
@@ -29,7 +30,7 @@ export function Displayevents() {
           setData(null);
           return;
         }
-        const url = window.location.origin;
+        const url = API_URL;
         const response = await fetch(`${url}/api/events`);
         if (!response.ok) {
           throw new Error('Failed to fetch data');

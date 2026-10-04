@@ -5,7 +5,6 @@ import Navbar from './components/Navbar';
 import AuthProvider from './Context/AuthManager';
 import SnackbarProvider from './Context/SnackbarProvider';
 import RoutesManager from './Context/RoutesManager';
-import Footer from './components/Footer/footer';
 
 const App = () => {
     const [loading, setLoading] = useState(true);

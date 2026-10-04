@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import './index.css';
 import { WebCanvas } from "../bg_animation/bg_animate";
-import tzlogo_with_date from "./tzlogo_with_date.png";
 import TypingWords from "./TypingWords";
 
 // Countdown Component

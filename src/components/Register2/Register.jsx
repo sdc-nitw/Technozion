@@ -4,13 +4,22 @@ import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
 import { useSnackbar } from "../../Context/SnackbarProvider";
 import { isNitwEmail } from "../utils/registrationChecks";
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const validateUpload = (file) => {
+  if (!file) return "";
+  const okType = (file.type || "").startsWith("image/") || file.type === "application/pdf";
+  if (!okType) return "Please upload an image or a PDF.";
+  if (file.size > MAX_UPLOAD_BYTES) return "File is too large (max 5 MB). Please upload a smaller file.";
+  return "";
+};
 
 export const Register = () => {
-  const { register: authRegister } = useAuth();
+  const { register: authRegister, loading } = useAuth();
   // const [societies, setSocieties] = useState([]);
   // const [clubs, setClubs] = useState([]);
   // const [workshops, setWorkshops] = useState([])
   const [events, setEvents] = useState([]);
+  const [eventsError, setEventsError] = useState("");
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -26,8 +35,10 @@ export const Register = () => {
         // setClubs(clubsData);
         // setWorkshops(workshopsData)
         const res = await fetch(`${API_URL}/api/events`);
+        if (!res.ok) throw new Error(`Events request failed (${res.status})`);
         const data = await res.json();
         setEvents(data.events || []);
+        setEventsError("");
       } catch (err) {
         console.error("Failed to fetch JSON:", err);
       }
@@ -110,9 +121,8 @@ export const Register = () => {
     name: "teamMembers"
   });
 
-  const watchedEvents = watch("events") || [];
+  const watchedEvents = watch("events");
   const watchedEmail = watch("email") || "";
-  const watchedAccommodation = watch("accommodation") || false;
   const watchedRegistrationType = watch("registrationType") || "individual";
 
   useEffect(() => {
@@ -452,10 +462,16 @@ export const Register = () => {
                     type="file"
                     accept="image/*,.pdf"
                     onChange={(e) => {
-                      setIdDocument(e.target.files[0]);
-                      if (e.target.files[0]) {
-                        setIdDocumentError("");
+                      const file = e.target.files[0];
+                      const problem = validateUpload(file);
+                      if (problem) {
+                        setIdDocument(null);
+                        setIdDocumentError(problem);
+                        e.target.value = "";
+                        return;
                       }
+                      setIdDocument(file);
+                      setIdDocumentError("");
                     }}
                     className="w-full text-sm text-white file:bg-cyan file:text-black file:px-4 file:py-2 rounded-lg hover:file:bg-cyanLight transition"
                   />
@@ -505,6 +521,13 @@ export const Register = () => {
                     <div className="flex items-center gap-2 mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                       <span className="text-red-400 text-sm">⚠</span>
                       <p className="text-red-400 text-sm">{errors.events.message}</p>
+                    </div>
+                  )}
+
+                  {eventsError && (
+                    <div className="flex items-center gap-2 mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                      <span className="text-red-400 text-sm">⚠</span>
+                      <p className="text-red-400 text-sm">{eventsError}</p>
                     </div>
                   )}
 
@@ -585,9 +608,10 @@ export const Register = () => {
           <div className="mt-8 mb-20 text-center">
             <button
               type="submit"
-              className="px-8 py-4 bg-cyan/20 rounded-xl hover:bg-cyan/30 transition font-semibold text-lg shadow-lg hover:shadow-cyan/30 transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="px-8 py-4 bg-cyan/20 rounded-xl hover:bg-cyan/30 transition font-semibold text-lg shadow-lg hover:shadow-cyan/30 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none"
             >
-              Complete Registration
+              {loading ? "Submitting..." : "Complete Registration"}
             </button>
             <br />
           </div>
@@ -620,11 +644,17 @@ export const Register = () => {
                 type="file"
                 accept="image/*,.pdf"
                 onChange={(e) => {
-                  setPaymentScreenshot(e.target.files[0]);
-                  if (e.target.files[0]) {
-                    setPaymentError("");
+                  const file = e.target.files[0];
+                  const problem = validateUpload(file);
+                  if (problem) {
+                    setPaymentScreenshot(null);
+                    setPaymentError(problem);
+                    e.target.value = "";
+                    return;
                   }
-                }}
+                  setPaymentScreenshot(file);
+                  setPaymentError("");
+                 }}
                 className="w-full text-sm text-white file:bg-cyan file:text-black file:px-4 file:py-2 rounded-lg hover:file:bg-cyanLight transition"
               />
               {paymentError && (
