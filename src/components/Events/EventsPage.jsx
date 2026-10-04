@@ -76,13 +76,14 @@ export const EventsPage = () => {
     });
   };
   
-  return (
+ return (
     <div className="past-events-root">
       <div className="past-events-canvas">
         <WebCanvas />
       </div>
 
-      <div className="edition-view-container">
+      {/* Added pt-20 md:pt-28 to clear the floating navbar tz logo */}
+      <div className="edition-view-container pt-12 md:pt-16">
         {/* Top Header Bar */}
         <div className="edition-topbar">
           <div className="edition-topbar-row">
