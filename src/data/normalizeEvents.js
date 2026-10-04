@@ -46,7 +46,6 @@ function parseRules(raw) {
   return text.split("\n").map((r) => r.trim()).filter(Boolean);
 }
 
-
 function normalizeEvent(raw, index = 0) {
   const name = clean(raw["Event Name"] || raw.name || raw.title);
   const description = (
@@ -61,13 +60,24 @@ function normalizeEvent(raw, index = 0) {
     (raw.overview && raw.overview.team_size)
   );
   const email = clean(raw["Email Address"] || raw.email);
-  const eventType = clean(raw["Event Type"] || raw.eventType || raw.event_type);
+  const rawType = clean(raw["Event Type"] || raw.eventType || raw.event_type || raw.type || raw.category);
+  
+  // Standardize eventType to match UI filter expectations (e.g. "Competition", "Game", "Demonstration")
+  let eventType = rawType;
+  if (/competition/i.test(rawType)) eventType = "Competition";
+  else if (/game/i.test(rawType)) eventType = "Game";
+  else if (/demonstration/i.test(rawType)) eventType = "Demonstration";
+
+  const posterPath = raw.poster || raw.imgsrc || raw.image || "";
+
   return {
     slug: slugify(name) || `event-${index + 1}`,
     name,
     club: clean(raw["Club Name"] || raw.club || raw.name),
     description,
     eventType,
+    type: eventType,
+    category: clean(raw.category || eventType),
     teamSize: EMPTY_VALUES.test(teamRaw) ? "" : teamRaw,
     duration: clean(
       raw["Approx time it takes for one student to complete the event"] ||
@@ -84,11 +94,14 @@ function normalizeEvent(raw, index = 0) {
       raw.cashPrize ||
       eventType.toLowerCase() === "competition" ||
       /prize/i.test(description)
+      
     ),
     totalCost: raw.totalCost !== undefined ? raw.totalCost : null,
     cashPrize: raw.cashPrize || raw.cash_prize || "",
     judgingCriteria: raw.judgingCriteria || (raw.overview && raw.overview.judging_criteria) || "Coming Soon...",
-    imgsrc: (raw.imgsrc || raw["Poster"] || "").toString().trim(),
+    imgsrc: posterPath,
+    poster: posterPath,
+    image: posterPath,
     glink: raw.glink || "",
     venue: raw.venue || "",
     registrationOpen: raw.registrationOpen !== false,
