@@ -1,37 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { fetchEvents } from "../Events/eventsData";
+import { WebCanvas } from "../bg_animation/bg_animate";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
-const TEAM_SIZE = 4; // fixed team size (confirm: 4 or 5)
+const TEAM_SIZE = 4; // fixed team size
 const GATE_FEE = 200; // per-person gate entry fee
 const COMPETITION_FEE = 500; // per-team per-competition event fee
 const MAX_FEE = 2000; // cap if needed
 
-// ── Gender-based fees (commented until confirmed) ──────────────────────────
-// const GATE_FEE_BY_GENDER      = { male: 200, female: 150, other: 200 };
-// const COMPETITION_FEE_BY_GENDER = { male: 500, female: 400, other: 500 };
-
-// ─── Static config (replace placeholders once assets are ready) ───────────────
-const BROCHURE_URL = "/brochure.pdf"; // TODO: replace with actual brochure link
-const QR_SRC = "/payment-qr.png"; // TODO: replace with actual QR image
+// ─── Static config ────────────────────────────────────────────────────────────
+const BROCHURE_URL = "/brochure.pdf";
+const QR_SRC = "/payment-qr.png";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
-// ─── Fallback poster SVG ──────────────────────────────────────────────────────
-const FALLBACK_POSTER =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='#121215'/><text x='50%' y='50%' fill='#404040' font-family='sans-serif' font-size='16' text-anchor='middle'>Poster coming soon</text></svg>"
-  );
-
-// ─── Input / label styles ──────────────────────────────────────────────────────
+// ─── Input / label styles (Matched to Patron theme) ───────────────────────────
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-neutral-950/80 border border-neutral-700 text-white placeholder-neutral-600 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition";
+  "w-full px-4 py-2.5 rounded-lg bg-[#0e131b] border border-[#26354a] text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-[#00f7ff] focus:ring-1 focus:ring-[#00f7ff] focus:shadow-[0_0_15px_rgba(0,247,255,0.35)] transition-all duration-200";
 const labelCls =
   "block text-xs font-mono uppercase tracking-wider text-neutral-400 mb-1.5";
 
 export default function Register() {
-  // ── Events state (loaded from API / local JSON fallback) ─────────────────
+  // ── Events state ──────────────────────────────────────────────────────────
   const [allEvents, setAllEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
 
@@ -48,7 +38,7 @@ export default function Register() {
     [allEvents]
   );
 
-  // ── Form ─────────────────────────────────────────────────────────────────
+  // ── Form ──────────────────────────────────────────────────────────────────
   const {
     register,
     handleSubmit,
@@ -69,9 +59,8 @@ export default function Register() {
   );
   const collegeIdFile = watch("collegeId");
   const paymentFile = watch("paymentScreenshot");
-  // const gender = watch("gender"); // ← uncomment when gender-based fees go live
 
-  // ── Fee calculation ───────────────────────────────────────────────────────
+  // ── Fee calculation ────────────────────────────────────────────────────────
   const { total, mode, competitionCount } = useMemo(() => {
     const comps = registrableEvents.filter(
       (e) =>
@@ -80,7 +69,6 @@ export default function Register() {
     ).length;
 
     if (comps > 0) {
-      // const rate = COMPETITION_FEE_BY_GENDER[gender] ?? COMPETITION_FEE;
       const rate = COMPETITION_FEE;
       return {
         total: Math.min(rate * comps, MAX_FEE),
@@ -90,7 +78,6 @@ export default function Register() {
     }
 
     if (selectedEventIds.length > 0) {
-      // const rate = GATE_FEE_BY_GENDER[gender] ?? GATE_FEE;
       const rate = GATE_FEE;
       return {
         total: Math.min(rate * TEAM_SIZE, MAX_FEE),
@@ -100,14 +87,9 @@ export default function Register() {
     }
 
     return { total: 0, mode: null, competitionCount: 0 };
-  }, [selectedEventIds, registrableEvents /*, gender*/]);
+  }, [selectedEventIds, registrableEvents]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  // TODO (backend): update /api/register to accept:
-  //   name, gender, email, college, collegeId (file upload URL),
-  //   members (JSON array of names), events (JSON array of slugs),
-  //   amount, paymentScreenshot (file upload URL)
-  // No password field — auth is no longer required for registration.
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (data) => {
     const fd = new FormData();
     fd.append("name", data.name);
@@ -120,7 +102,6 @@ export default function Register() {
     fd.append("events", JSON.stringify(data.events));
     fd.append("amount", total.toString());
 
-    // TODO (backend): POST to actual registration endpoint
     const res = await fetch("/api/register", { method: "POST", body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -128,16 +109,19 @@ export default function Register() {
     }
   };
 
-  // ─── UI ──────────────────────────────────────────────────────────────────
+  // ─── UI ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-black text-neutral-100 py-12 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="relative min-h-screen bg-black text-neutral-100 py-12 px-4 sm:px-6 overflow-hidden">
+      {/* ── Background Constellation Canvas & Spotlight (Register Only) ── */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <WebCanvas />
+        <div className="absolute inset-0 spotlight opacity-95"></div>
+      </div>
 
-        {/* ── Header ── */}
+      {/* ── Foreground Content ── */}
+      <div className="max-w-4xl mx-auto space-y-8 relative z-10 pt-4">
+        {/* Header */}
         <div className="text-center space-y-3">
-          <div className="inline-block px-3 py-1 rounded-full border border-cyan-500/40 bg-cyan-950/20 text-cyan-400 text-xs font-mono tracking-wider uppercase">
-            Official Registration Portal
-          </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">
             Registration
           </h1>
@@ -155,61 +139,58 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-
-          {/* ── Section 1: Team Lead Details ── */}
-          <div className="p-6 sm:p-8 rounded-2xl bg-neutral-900/60 border border-neutral-800 shadow-xl backdrop-blur-md space-y-6">
-            <h2 className="text-lg font-semibold tracking-wide text-neutral-200 border-b border-neutral-800 pb-3 flex items-center gap-2">
+          {/* Section 1: Team Lead Details */}
+          <div className="p-6 sm:p-8 rounded-xl bg-[#18202c] border border-[#26354a] shadow-[0_8px_30px_rgb(0,0,0,0.45)] space-y-6">
+            <h2 className="text-lg font-bold tracking-wide text-white border-b border-[#26354a] pb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-cyan-400" />
               Team Lead Details
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* Full Name */}
               <div>
                 <label className={labelCls}>Full Name</label>
                 <input
-                  placeholder="e.g. Alex Vance"
+                  placeholder="e.g. Ash Ketchum"
                   className={inputCls}
                   {...register("name", { required: "Lead name is required" })}
                 />
-                {errors.name && <p className="text-red-400 text-xs mt-1.5">{errors.name.message}</p>}
+                {errors.name && (
+                  <p className="text-red-400 text-xs mt-1.5">{errors.name.message}</p>
+                )}
               </div>
 
-              {/* Gender
-                  NOTE: Gender affects fee calculation (commented logic above).
-                  The field is collected now so the backend can store it.
-                  Enable gender-based fees by swapping the commented `rate` lines in the
-                  useMemo above once the fee structure is confirmed. */}
               <div>
                 <label className={labelCls}>Gender</label>
                 <select
-                  className={inputCls}
+                  className={`${inputCls} cursor-pointer`}
                   {...register("gender", { required: "Gender is required" })}
                 >
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other / Prefer not to say</option>
+                  <option value="" className="bg-[#0e131b] text-neutral-400">Select Gender</option>
+                  <option value="male" className="bg-[#0e131b] text-white">Male</option>
+                  <option value="female" className="bg-[#0e131b] text-white">Female</option>
+                  <option value="other" className="bg-[#0e131b] text-white">Other / Prefer not to say</option>
                 </select>
-                {errors.gender && <p className="text-red-400 text-xs mt-1.5">{errors.gender.message}</p>}
+                {errors.gender && (
+                  <p className="text-red-400 text-xs mt-1.5">{errors.gender.message}</p>
+                )}
               </div>
 
-              {/* Email */}
               <div>
                 <label className={labelCls}>Email Address</label>
                 <input
                   type="email"
-                  placeholder="alex@example.com"
+                  placeholder="pikachu@example.com"
                   className={inputCls}
                   {...register("email", {
                     required: "Email is required",
                     pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
                   })}
                 />
-                {errors.email && <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>}
+                {errors.email && (
+                  <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
+                )}
               </div>
 
-              {/* College */}
               <div>
                 <label className={labelCls}>College / University</label>
                 <input
@@ -217,14 +198,15 @@ export default function Register() {
                   className={inputCls}
                   {...register("college", { required: "College name is required" })}
                 />
-                {errors.college && <p className="text-red-400 text-xs mt-1.5">{errors.college.message}</p>}
+                {errors.college && (
+                  <p className="text-red-400 text-xs mt-1.5">{errors.college.message}</p>
+                )}
               </div>
             </div>
 
-            {/* College ID Upload */}
             <div>
               <label className={labelCls}>Upload College ID Proof (PDF / JPG / PNG)</label>
-              <label className="border-2 border-dashed border-neutral-700 hover:border-cyan-500/60 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-neutral-950/40 hover:bg-neutral-950/70 transition-all">
+              <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
                 <input
                   type="file"
                   accept="image/*,application/pdf"
@@ -235,20 +217,24 @@ export default function Register() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <span className="text-sm font-medium text-neutral-300">
-                  {collegeIdFile?.[0]?.name
-                    ? <span className="text-cyan-400 font-mono">{collegeIdFile[0].name}</span>
-                    : "Click to select a file or drag it here"}
+                  {collegeIdFile?.[0]?.name ? (
+                    <span className="text-cyan-400 font-mono">{collegeIdFile[0].name}</span>
+                  ) : (
+                    "Click to select a file or drag it here"
+                  )}
                 </span>
                 <span className="text-xs text-neutral-500 mt-1">Maximum size: 5 MB</span>
               </label>
-              {errors.collegeId && <p className="text-red-400 text-xs mt-1.5">{errors.collegeId.message}</p>}
+              {errors.collegeId && (
+                <p className="text-red-400 text-xs mt-1.5">{errors.collegeId.message}</p>
+              )}
             </div>
           </div>
 
-          {/* ── Section 2: Team Members ── */}
-          <div className="p-6 sm:p-8 rounded-2xl bg-neutral-900/60 border border-neutral-800 shadow-xl backdrop-blur-md space-y-4">
+          {/* Section 2: Team Members */}
+          <div className="p-6 sm:p-8 rounded-xl bg-[#18202c] border border-[#26354a] shadow-[0_8px_30px_rgb(0,0,0,0.45)] space-y-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-wide text-neutral-200 flex items-center gap-2">
+              <h2 className="text-lg font-bold tracking-wide text-white flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
                 Team Members ({TEAM_SIZE} Members Total)
               </h2>
@@ -276,89 +262,53 @@ export default function Register() {
             </div>
           </div>
 
-          {/* ── Section 3: Select Events ── */}
+          {/* Section 3: Select Events */}
           <div className="space-y-4">
             <div>
               <h2 className="text-xl font-bold tracking-wide text-neutral-100 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
                 Select Participating Events
               </h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                Click any card to add it to your ticket.{" "}
-                <span className="text-cyan-500">Competitions</span> are charged ₹{COMPETITION_FEE}/event per team.{" "}
-                <span className="text-neutral-300">Games &amp; Demonstrations</span> are covered by the gate entry fee (₹{GATE_FEE} × {TEAM_SIZE} members).
+              <p className="text-xs text-neutral-400 mt-1">
+                Click any event to add or remove it from your registration.
               </p>
             </div>
 
             {eventsLoading ? (
-              <div className="text-center py-12 text-neutral-500 font-mono text-sm animate-pulse">
+              <div className="text-center py-6 text-neutral-500 font-mono text-sm animate-pulse">
                 Loading events…
               </div>
             ) : registrableEvents.length === 0 ? (
-              <div className="text-center py-12 text-neutral-500 font-mono text-sm">
-                No events available yet. Check back soon!
+              <div className="text-center py-6 text-neutral-500 font-mono text-sm">
+                No events available yet.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-3 pt-1">
                 {registrableEvents.map((ev) => {
                   const isChecked = selectedEventIds.includes(ev.slug);
-                  const isComp = ev.type?.toLowerCase() === "competition";
+
                   return (
                     <label
                       key={ev.slug}
-                      className={`group relative flex flex-col rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer ${
+                      className={`inline-flex items-center justify-center px-6 py-2.5 rounded-full cursor-pointer select-none font-bold text-xs tracking-wider uppercase transition-all duration-200 border-2 ${
                         isChecked
-                          ? "border-cyan-400 bg-cyan-950/20 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
-                          : "border-neutral-800 bg-neutral-900/40 hover:border-neutral-700 hover:bg-neutral-900/80"
+                          ? "!bg-[#00f7ff] !border-[#00f7ff] shadow-[0_0_20px_#00f7ff] scale-105"
+                          : "bg-transparent border-[#00f7ff] hover:bg-[#00f7ff]/10 hover:shadow-[0_0_12px_rgba(0,247,255,0.4)]"
                       }`}
                     >
-                      <div className="relative w-full h-44 overflow-hidden bg-neutral-950">
-                        <img
-                          src={ev.poster || ev.imgsrc || FALLBACK_POSTER}
-                          alt={ev.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = FALLBACK_POSTER;
-                          }}
-                        />
-                        <span
-                          className={`absolute top-3 right-3 text-[11px] font-mono tracking-wider uppercase px-2.5 py-1 rounded-full backdrop-blur-md border ${
-                            isComp
-                              ? "bg-amber-950/80 border-amber-600 text-amber-300"
-                              : "bg-black/70 border-neutral-700 text-neutral-300"
-                          }`}
-                        >
-                          {ev.type}
-                        </span>
-                      </div>
-
-                      <div className="p-4 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-neutral-100 group-hover:text-cyan-300 transition-colors">
-                            {ev.name}
-                          </p>
-                          <p className="text-xs text-neutral-500 font-mono mt-0.5">
-                            {isComp ? `₹${COMPETITION_FEE}/team/event` : "Included in gate entry"}
-                          </p>
-                        </div>
-
-                        <div
-                          className={`w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0 transition-colors ${
-                            isChecked
-                              ? "bg-cyan-500 border-cyan-400 text-black"
-                              : "border-neutral-700 bg-neutral-950"
-                          }`}
-                        >
-                          {isChecked && (
-                            <svg className="w-4 h-4 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <input type="checkbox" value={ev.slug} className="hidden" {...register("events")} />
-                      </div>
+                      <input
+                        type="checkbox"
+                        value={ev.slug}
+                        className="hidden"
+                        {...register("events")}
+                      />
+                      <span
+                        className={`transition-colors duration-150 ${
+                          isChecked ? "!text-black font-extrabold" : "!text-white"
+                        }`}
+                      >
+                        {ev.name}
+                      </span>
                     </label>
                   );
                 })}
@@ -366,14 +316,13 @@ export default function Register() {
             )}
           </div>
 
-          {/* ── Section 4: Payment ── */}
-          <div className="rounded-2xl border border-cyan-500/30 bg-neutral-950/80 backdrop-blur-xl p-6 sm:p-8 shadow-[0_0_30px_rgba(6,182,212,0.1)] space-y-6">
+          {/* Section 4: Payment */}
+          <div className="rounded-xl border border-[#26354a] bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
             <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">
               Payment
             </span>
 
             <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-              {/* Summary */}
               <div className="space-y-4 max-w-sm text-center md:text-left">
                 <div className="space-y-1">
                   <p className="text-sm text-neutral-400">
@@ -394,38 +343,34 @@ export default function Register() {
                   )}
                 </div>
 
-                {/* Info boxes */}
                 {mode === "gate" && (
-                  <div className="text-xs text-neutral-400 bg-neutral-900 border border-neutral-800 rounded-xl p-3 space-y-1 text-left">
-                    <p>🎟️ <strong className="text-neutral-200">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
+                  <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
+                    <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
                     <p>Fee: ₹{GATE_FEE} × {TEAM_SIZE} members = ₹{GATE_FEE * TEAM_SIZE}</p>
                   </div>
                 )}
                 {mode === "competition" && (
-                  <div className="text-xs text-neutral-400 bg-neutral-900 border border-neutral-800 rounded-xl p-3 space-y-1 text-left">
-                    <p>🏆 <strong className="text-neutral-200">Competition</strong> — charged per event per team.</p>
+                  <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
+                    <p>🏆 <strong className="text-white">Competition</strong> — charged per event per team.</p>
                     <p>Fee: ₹{COMPETITION_FEE} × {competitionCount} event{competitionCount > 1 ? "s" : ""} = ₹{Math.min(COMPETITION_FEE * competitionCount, MAX_FEE)}</p>
                   </div>
                 )}
               </div>
 
-              {/* QR Code */}
               <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                <div className="p-3 bg-white rounded-2xl shadow-xl border border-neutral-300">
-                  {/* TODO: replace /payment-qr.png with the real QR image */}
+                <div className="p-3 bg-white rounded-xl shadow-xl border border-neutral-300">
                   <img src={QR_SRC} alt="Payment QR" className="w-40 h-40 object-contain" />
                 </div>
-                <span className="text-[11px] font-mono text-neutral-500 uppercase tracking-wider">
+                <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
                   Scan with any UPI app
                 </span>
               </div>
             </div>
 
-            {/* Payment Screenshot Upload */}
             {total > 0 && (
               <div>
                 <label className={labelCls}>Upload Payment Screenshot</label>
-                <label className="border-2 border-dashed border-neutral-700 hover:border-cyan-500/60 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-neutral-950/40 hover:bg-neutral-950/70 transition-all">
+                <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
                   <input
                     type="file"
                     accept="image/*"
@@ -438,9 +383,11 @@ export default function Register() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   <span className="text-sm font-medium text-neutral-300">
-                    {paymentFile?.[0]?.name
-                      ? <span className="text-cyan-400 font-mono">{paymentFile[0].name}</span>
-                      : "Click to upload your payment screenshot"}
+                    {paymentFile?.[0]?.name ? (
+                      <span className="text-cyan-400 font-mono">{paymentFile[0].name}</span>
+                    ) : (
+                      "Click to upload your payment screenshot"
+                    )}
                   </span>
                   <span className="text-xs text-neutral-500 mt-1">JPG / PNG — Maximum size: 5 MB</span>
                 </label>
@@ -451,7 +398,7 @@ export default function Register() {
             )}
           </div>
 
-          {/* ── Submit ── */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting || total === 0}
@@ -465,7 +412,6 @@ export default function Register() {
           </button>
         </form>
 
-        {/* ── Contact footer ── */}
         <p className="text-center text-xs text-neutral-500 font-mono pb-4">
           For unintended registrations, payment issues or discrepancies, reach out to{" "}
           <a href={`mailto:${CONTACT_EMAIL}`} className="text-neutral-400 underline hover:text-cyan-400">
