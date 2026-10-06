@@ -31,3 +31,4 @@ test-results/
 # gemini & agent configs/rules
 .agents/
 .gemini/
+.vercel
