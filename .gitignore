@@ -32,3 +32,4 @@ test-results/
 .agents/
 .gemini/
 .vercel
+.env*

@@ -4,6 +4,7 @@ import { fetchEvents } from "../Events/eventsData";
 import { WebCanvas } from "../bg_animation/bg_animate";
 import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
+import { isNitwEmail } from "../utils/registrationChecks";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
 const TEAM_SIZE = 4; // fixed team size
@@ -21,8 +22,6 @@ const inputCls =
   "w-full px-4 py-2.5 rounded-lg bg-[#0e131b] border border-[#26354a] text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-[#00f7ff] focus:ring-1 focus:ring-[#00f7ff] focus:shadow-[0_0_15px_rgba(0,247,255,0.35)] transition-all duration-200";
 const labelCls =
   "block text-xs font-mono uppercase tracking-wider text-neutral-400 mb-1.5";
-
-import { isNitwEmail } from "../utils/registrationChecks";
 
 export default function Register() {
   // ── Events state ──────────────────────────────────────────────────────────
