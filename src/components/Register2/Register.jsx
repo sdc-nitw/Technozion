@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { fetchEvents } from "../Events/eventsData";
 import { WebCanvas } from "../bg_animation/bg_animate";
+import { API_URL } from "../../config";
+import { useAuth } from "../../Context/AuthManager";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
 const TEAM_SIZE = 4; // fixed team size
@@ -11,7 +13,7 @@ const MAX_FEE = 2000; // cap if needed
 
 // ─── Static config ────────────────────────────────────────────────────────────
 const BROCHURE_URL = "/brochure.pdf";
-const QR_SRC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xMCAxMGgzMHYzMEgxMHptMTAgMTBoMTB2MTBIMjB6bTQwLTQwaDMwdjMwSDUwem0xMCAxMGgxMHYxMEg2MHptLTUwIDQwaDMwdjMwSDEwem0xMCAxMGgxMHYxMEgyMHptMzAtdjEwaDEwdjEwSDQwem0yMCAwaDMwdjMwSDYwem0xMCAxMGgxMHYxMEg3MHoiIGZpbGw9IiMwMDAiLz48L3N2Zz4=";
+const QR_SRC = "/payment-qr.png";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -19,6 +21,8 @@ const inputCls =
   "w-full px-4 py-2.5 rounded-lg bg-[#0e131b] border border-[#26354a] text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-[#00f7ff] focus:ring-1 focus:ring-[#00f7ff] focus:shadow-[0_0_15px_rgba(0,247,255,0.35)] transition-all duration-200";
 const labelCls =
   "block text-xs font-mono uppercase tracking-wider text-neutral-400 mb-1.5";
+
+import { isNitwEmail } from "../utils/registrationChecks";
 
 export default function Register() {
   // ── Events state ──────────────────────────────────────────────────────────
@@ -59,12 +63,13 @@ export default function Register() {
   );
   const collegeIdFile = watch("collegeId");
   const paymentFile = watch("paymentScreenshot");
+  const watchedEmail = watch("email") || "";
 
   // ── Fee calculation ────────────────────────────────────────────────────────
   const { total, mode, competitionCount } = useMemo(() => {
     const comps = registrableEvents.filter(
       (e) =>
-        selectedEventIds.includes(e.slug) &&
+        selectedEventIds.includes(e._id || e.slug) &&
         e.type?.toLowerCase() === "competition"
     ).length;
 
@@ -95,8 +100,6 @@ export default function Register() {
   const [otpSending, setOtpSending] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState("");
-  
-  const watchedEmail = watch("email");
 
   // Reset verification if email changes
   useEffect(() => {
@@ -111,7 +114,7 @@ export default function Register() {
     setOtpSending(true);
     setOtpError("");
     try {
-      const res = await fetch("/api/auth/send-otp", {
+      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: watchedEmail }),
@@ -130,7 +133,7 @@ export default function Register() {
     if (!otpCode) return;
     setOtpError("");
     try {
-      const res = await fetch("/api/auth/verify-otp", {
+      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: watchedEmail, otp: otpCode }),
@@ -146,29 +149,28 @@ export default function Register() {
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
+  const { register: authRegister, loading: authLoading } = useAuth();
+  
   const onSubmit = async (data) => {
     if (!emailVerified) {
       alert("Please verify your email address before submitting.");
       return;
     }
-    const fd = new FormData();
-    fd.append("name", data.name);
-    fd.append("gender", data.gender);
-    fd.append("email", data.email);
-    fd.append("college", data.college);
-    fd.append("collegeId", data.collegeId[0]);
-    if (data.paymentScreenshot?.[0]) {
-      fd.append("paymentScreenshot", data.paymentScreenshot[0]);
-    }
-    fd.append("members", JSON.stringify(data.members || []));
-    fd.append("events", JSON.stringify(data.events));
-    fd.append("amount", total.toString());
 
-    const res = await fetch("/api/auth/register", { method: "POST", body: fd });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.message || "Registration failed. Please try again.");
-    }
+    const payload = {
+      name: data.name,
+      gender: data.gender,
+      email: data.email,
+      collegeName: data.college,
+      idDocument: data.collegeId[0],
+      paymentScreenshot: data.paymentScreenshot?.[0] || null,
+      teamMembers: data.members ? data.members.map(name => ({ name })) : [],
+      events: data.events || [],
+      registrationType: data.events?.length > 0 ? (data.members?.length > 0 ? "team" : "individual") : "individual",
+      password: data.password,
+    };
+
+    await authRegister(payload);
   };
 
   // ─── UI ───────────────────────────────────────────────────────────────────
@@ -310,6 +312,22 @@ export default function Register() {
               </div>
 
               <div>
+                <label className={labelCls}>Password</label>
+                <input
+                  type="password"
+                  placeholder="Minimum 8 characters"
+                  className={inputCls}
+                  {...register("password", { 
+                    required: "Password is required",
+                    minLength: { value: 8, message: "Must be at least 8 characters" }
+                  })}
+                />
+                {errors.password && (
+                  <p className="text-red-400 text-xs mt-1.5">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
                 <label className={labelCls}>College / University</label>
                 <input
                   placeholder="e.g. NIT Warangal"
@@ -403,7 +421,8 @@ export default function Register() {
             ) : (
               <div className="flex flex-wrap gap-3 pt-1">
                 {registrableEvents.map((ev) => {
-                  const isChecked = selectedEventIds.includes(ev.slug);
+                  const eventVal = ev._id || ev.slug; // Fallback to slug if _id is missing
+                  const isChecked = selectedEventIds.includes(eventVal);
 
                   return (
                     <label
@@ -416,7 +435,7 @@ export default function Register() {
                     >
                       <input
                         type="checkbox"
-                        value={ev.slug}
+                        value={eventVal}
                         className="hidden"
                         {...register("events")}
                       />
@@ -434,98 +453,102 @@ export default function Register() {
             )}
           </div>
 
-          {/* Section 4: Payment */}
-          <div className="rounded-xl border border-[#26354a] bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
-            <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">
-              Payment
-            </span>
+          {/* Section 4: Payment (Hidden for NITW students) */}
+          {!isNitwEmail(watchedEmail) && (
+            <div className="rounded-xl border border-[#26354a] bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
+              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">
+                Payment
+              </span>
 
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-              <div className="space-y-4 max-w-sm text-center md:text-left">
-                <div className="space-y-1">
-                  <p className="text-sm text-neutral-400">
-                    {mode === "competition"
-                      ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
-                      : mode === "gate"
-                      ? `Gate Entry · ${TEAM_SIZE} Members × ₹${GATE_FEE}`
-                      : "No events selected yet"}
-                  </p>
-                  <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-1 justify-center md:justify-start">
-                    <span>₹{total}</span>
-                    <span className="text-xs font-normal text-neutral-400 uppercase font-mono">INR</span>
-                  </div>
-                  {total > 0 && (
-                    <p className="text-xs text-neutral-500 pt-1">
-                      Scan the QR via GPay / PhonePe / Paytm, then upload the screenshot below.
+              <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                <div className="space-y-4 max-w-sm text-center md:text-left">
+                  <div className="space-y-1">
+                    <p className="text-sm text-neutral-400">
+                      {mode === "competition"
+                        ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
+                        : mode === "gate"
+                        ? `Gate Entry · ${TEAM_SIZE} Members × ₹${GATE_FEE}`
+                        : "No events selected yet"}
                     </p>
+                    <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-1 justify-center md:justify-start">
+                      <span>₹{total}</span>
+                      <span className="text-xs font-normal text-neutral-400 uppercase font-mono">INR</span>
+                    </div>
+                    {total > 0 && (
+                      <p className="text-xs text-neutral-500 pt-1">
+                        Scan the QR via GPay / PhonePe / Paytm, then upload the screenshot below.
+                      </p>
+                    )}
+                  </div>
+
+                  {mode === "gate" && (
+                    <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
+                      <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
+                      <p>Fee: ₹{GATE_FEE} × {TEAM_SIZE} members = ₹{GATE_FEE * TEAM_SIZE}</p>
+                    </div>
+                  )}
+                  {mode === "competition" && (
+                    <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
+                      <p>🏆 <strong className="text-white">Competition</strong> — charged per event per team.</p>
+                      <p>Fee: ₹{COMPETITION_FEE} × {competitionCount} event{competitionCount > 1 ? "s" : ""} = ₹{Math.min(COMPETITION_FEE * competitionCount, MAX_FEE)}</p>
+                    </div>
                   )}
                 </div>
 
-                {mode === "gate" && (
-                  <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
-                    <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
-                    <p>Fee: ₹{GATE_FEE} × {TEAM_SIZE} members = ₹{GATE_FEE * TEAM_SIZE}</p>
+                <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                  <div className="p-3 bg-white rounded-xl shadow-xl border border-neutral-300">
+                    <img src={QR_SRC} alt="Payment QR" className="w-40 h-40 object-contain" />
                   </div>
-                )}
-                {mode === "competition" && (
-                  <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
-                    <p>🏆 <strong className="text-white">Competition</strong> — charged per event per team.</p>
-                    <p>Fee: ₹{COMPETITION_FEE} × {competitionCount} event{competitionCount > 1 ? "s" : ""} = ₹{Math.min(COMPETITION_FEE * competitionCount, MAX_FEE)}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                <div className="p-3 bg-white rounded-xl shadow-xl border border-neutral-300">
-                  <img src={QR_SRC} alt="Payment QR" className="w-40 h-40 object-contain" />
-                </div>
-                <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
-                  Scan with any UPI app
-                </span>
-              </div>
-            </div>
-
-            {total > 0 && (
-              <div>
-                <label className={labelCls}>Upload Payment Screenshot</label>
-                <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    {...register("paymentScreenshot", {
-                      required: total > 0 ? "Payment screenshot is required" : false,
-                    })}
-                  />
-                  <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <span className="text-sm font-medium text-neutral-300">
-                    {paymentFile?.[0]?.name ? (
-                      <span className="text-cyan-400 font-mono">{paymentFile[0].name}</span>
-                    ) : (
-                      "Click to upload your payment screenshot"
-                    )}
+                  <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
+                    Scan with any UPI app
                   </span>
-                  <span className="text-xs text-neutral-500 mt-1">JPG / PNG — Maximum size: 5 MB</span>
-                </label>
-                {errors.paymentScreenshot && (
-                  <p className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
-                )}
+                </div>
               </div>
-            )}
-          </div>
+
+              {total > 0 && (
+                <div>
+                  <label className={labelCls}>Upload Payment Screenshot</label>
+                  <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      {...register("paymentScreenshot", {
+                        required: total > 0 ? "Payment screenshot is required" : false,
+                      })}
+                    />
+                    <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-sm font-medium text-neutral-300">
+                      {paymentFile?.[0]?.name ? (
+                        <span className="text-cyan-400 font-mono">{paymentFile[0].name}</span>
+                      ) : (
+                        "Click to upload your payment screenshot"
+                      )}
+                    </span>
+                    <span className="text-xs text-neutral-500 mt-1">JPG / PNG — Maximum size: 5 MB</span>
+                  </label>
+                  {errors.paymentScreenshot && (
+                    <p className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={isSubmitting || total === 0}
+            disabled={isSubmitting || authLoading || selectedEventIds.length === 0}
             className="w-full py-4 rounded-xl font-bold uppercase tracking-wider text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:shadow-[0_0_35px_rgba(6,182,212,0.6)]"
           >
-            {isSubmitting
-              ? "Submitting…"
-              : total === 0
+            {authLoading
+              ? "Uploading & Submitting…"
+              : selectedEventIds.length === 0
               ? "Select at least one event to proceed"
+              : isNitwEmail(watchedEmail)
+              ? "Complete Registration"
               : `Confirm & Pay ₹${total}`}
           </button>
         </form>

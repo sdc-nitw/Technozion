@@ -71,6 +71,8 @@ function normalizeEvent(raw, index = 0) {
   const posterPath = raw.poster || raw.imgsrc || raw.image || "";
 
   return {
+    id: raw._id || raw.id || "",
+    _id: raw._id || raw.id || "",
     slug: slugify(name) || `event-${index + 1}`,
     name,
     club: clean(raw["Club Name"] || raw.club || raw.name),
