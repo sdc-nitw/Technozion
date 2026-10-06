@@ -54,15 +54,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   if (isMobileView) {
-      
-  //     setNavigation([...oldNavigation, ...rightNavigation]);
-  //   } else {
-     
-  //     setNavigation(oldNavigation);
-  //   }
-  // }, [isMobileView]);
   const navigation = isMobileView ? [...oldNavigation, ...rightNavigation] : oldNavigation;
   const closeMenu = () => {
     setMenuOpen(false);
@@ -124,18 +115,19 @@ export default function Navbar() {
   ));
 
   return (
-    <>
-      {/* 5. Conditional background from previous fix */}
-      {!menuOpen && isRegisterPage && <div className="navbar-background"></div>}
+    /* Fixed wrapper — always on top of every page */
+    <div className="navbar-wrapper">
+      {/* Solid background strip — always present now */}
+      <div className="navbar-background" />
 
-      {!menuOpen ? (
-        <div className="logo" > 
-          <Link to="./" onClick={closeMenu}>
-            <img src={chota_logo} alt="logo1" />
-          </Link>
-        </div> 
-      ) : null}
+      {/* Logo */}
+      <div className="logo">
+        <Link to="./" onClick={closeMenu}>
+          <img src={chota_logo} alt="logo1" />
+        </Link>
+      </div>
 
+      {/* Left / hamburger nav */}
       <nav className={menuOpen ? 'menu-open' : 'menu-closed'}>
         <div
           className="menu"
@@ -162,6 +154,6 @@ export default function Navbar() {
           <ul>{rightNavItems}</ul>
         </nav>
       )}
-    </>
+    </div>
   );
-}
+}

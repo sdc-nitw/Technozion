@@ -4,6 +4,7 @@ import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
 import { useSnackbar } from "../../Context/SnackbarProvider";
 import { isNitwEmail } from "../utils/registrationChecks";
+
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const FEE_PER_COMPETITION = 350;
 const MAX_FEE = 2000;
@@ -24,27 +25,266 @@ const validateUpload = (file) => {
   return "";
 };
 
+// ─── OTP Step Component ────────────────────────────────────────────────────
+const OtpVerificationStep = ({ email, onVerified, onCancel }) => {
+  const [otp, setOtp] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | verifying | verified | error
+  const [message, setMessage] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const sendOtp = async () => {
+    setStatus("sending");
+    setMessage("");
+    try {
+      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus("sent");
+        setMessage("OTP sent! Check your inbox (and spam folder).");
+        setCooldown(60);
+      } else {
+        setStatus("error");
+        setMessage(data.message || "Failed to send OTP.");
+      }
+    } catch {
+      setStatus("error");
+      setMessage("Network error. Please try again.");
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      setMessage("Please enter the 6-digit OTP.");
+      return;
+    }
+    setStatus("verifying");
+    setMessage("");
+    try {
+      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      if (res.ok && data.verified) {
+        setStatus("verified");
+        setMessage("Email verified successfully!");
+        setTimeout(() => onVerified(), 800);
+      } else {
+        setStatus("sent");
+        setMessage(data.message || "Invalid OTP.");
+      }
+    } catch {
+      setStatus("sent");
+      setMessage("Network error. Please try again.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+      <div className="bg-darkGray rounded-2xl p-6 md:p-8 max-w-md w-full shadow-lg shadow-cyan/50 animate-fadeIn">
+        <h2 className="text-2xl font-bold mb-2 text-cyan text-center">Verify Your Email</h2>
+        <p className="text-center text-sm text-white/60 mb-6">
+          We need to verify <span className="text-cyan font-medium">{email}</span>
+        </p>
+
+        {status === "idle" && (
+          <div className="text-center space-y-4">
+            <p className="text-sm text-white/70">
+              Click the button below to receive a 6-digit OTP on your email.
+            </p>
+            <button
+              onClick={sendOtp}
+              className="w-full px-4 py-3 bg-cyan/20 text-white rounded-lg hover:bg-cyan/30 transition font-medium"
+            >
+              Send OTP
+            </button>
+          </div>
+        )}
+
+        {status === "sending" && (
+          <p className="text-center text-cyan animate-pulse">Sending OTP…</p>
+        )}
+
+        {(status === "sent" || status === "verifying" || status === "error") && (
+          <div className="space-y-4">
+            {message && (
+              <p className={`text-sm text-center ${status === "error" ? "text-red-400" : "text-green-400"}`}>
+                {message}
+              </p>
+            )}
+            <div>
+              <label className="block text-sm font-medium mb-2">Enter OTP *</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6-digit code"
+                className="w-full px-4 py-3 bg-gray rounded-lg text-white text-center text-2xl tracking-widest placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-cyan transition"
+              />
+            </div>
+            <button
+              onClick={verifyOtp}
+              disabled={status === "verifying"}
+              className="w-full px-4 py-3 bg-cyan/20 text-white rounded-lg hover:bg-cyan/30 transition font-medium disabled:opacity-50"
+            >
+              {status === "verifying" ? "Verifying…" : "Verify OTP"}
+            </button>
+            <button
+              onClick={sendOtp}
+              disabled={cooldown > 0 || status === "sending"}
+              className="w-full px-4 py-2 text-sm text-cyan/70 hover:text-cyan transition disabled:opacity-40"
+            >
+              {cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
+            </button>
+          </div>
+        )}
+
+        {status === "verified" && (
+          <div className="text-center space-y-3">
+            <div className="text-5xl">✅</div>
+            <p className="text-green-400 font-semibold">Email verified!</p>
+            <p className="text-sm text-white/60">Continuing to registration…</p>
+          </div>
+        )}
+
+        {status !== "verified" && (
+          <button
+            onClick={onCancel}
+            className="w-full mt-4 px-4 py-2 text-sm text-white/50 hover:text-white/80 transition"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── QR Payment Modal ──────────────────────────────────────────────────────
+const QrPaymentModal = ({
+  amount,
+  registrationType,
+  paymentScreenshot,
+  setPaymentScreenshot,
+  paymentError,
+  setPaymentError,
+  onClose,
+}) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    const problem = validateUpload(file);
+    if (problem) {
+      setPaymentScreenshot(null);
+      setPaymentError(problem);
+      e.target.value = "";
+      return;
+    }
+    setPaymentScreenshot(file);
+    setPaymentError("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="bg-darkGray rounded-2xl p-6 md:p-8 max-w-md w-full shadow-lg shadow-cyan/50 animate-fadeIn max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-1 text-cyan text-center">Payment</h2>
+        <p className="text-center text-sm text-white/60 mb-5">
+          Scan the QR code below to pay
+        </p>
+
+        {/* QR Code */}
+        <div className="flex flex-col items-center mb-5">
+          <div className="bg-white rounded-xl p-3 mb-3 w-52 h-52 flex items-center justify-center">
+            {/* Replace /payment-qr.png with your actual QR image placed in Frontend/public/ */}
+            <img
+              src="/payment-qr.png"
+              alt="Payment QR Code"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='13' fill='%23555'%3EPlace your QR%3C/text%3E%3Ctext x='50%25' y='60%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='13' fill='%23555'%3Eimage at%3C/text%3E%3Ctext x='50%25' y='75%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='12' fill='%23888'%3Epublic/payment-qr.png%3C/text%3E%3C/svg%3E";
+              }}
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-cyan">₹{amount}</p>
+            {registrationType === "team" && (
+              <p className="text-xs text-cyan/70 mt-1">One payment covers the entire team</p>
+            )}
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-gray/40 rounded-lg p-3 mb-5 text-sm text-white/70 space-y-1">
+          <p>1. Open any UPI app (GPay, PhonePe, Paytm, etc.)</p>
+          <p>2. Scan the QR code above</p>
+          <p>3. Pay ₹{amount} and take a screenshot</p>
+          <p>4. Upload the screenshot below</p>
+        </div>
+
+        {/* Screenshot Upload */}
+        <div className="mb-4">
+          <label className="block mb-2 font-medium text-white text-sm">
+            Upload Payment Screenshot *
+          </label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={handleFileChange}
+            className="w-full text-sm text-white file:bg-cyan file:text-black file:px-4 file:py-2 rounded-lg hover:file:bg-cyanLight transition"
+          />
+          {paymentError && (
+            <div className="flex items-center gap-2 mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <span className="text-red-400 text-sm">⚠</span>
+              <p className="text-red-400 text-sm">{paymentError}</p>
+            </div>
+          )}
+          {paymentScreenshot && (
+            <p className="mt-2 text-green-400 text-sm">✓ Screenshot uploaded: {paymentScreenshot.name}</p>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg bg-gray/20 hover:bg-gray/30 transition font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg bg-cyan/20 text-white hover:bg-cyan/30 transition font-medium"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Register Component ───────────────────────────────────────────────
 export const Register = () => {
   const { register: authRegister, loading } = useAuth();
-  // const [societies, setSocieties] = useState([]);
-  // const [clubs, setClubs] = useState([]);
-  // const [workshops, setWorkshops] = useState([])
   const [events, setEvents] = useState([]);
   const [eventsError, setEventsError] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // const clubsRes = await fetch("/dataJSON/club.json");
-        // const societiesRes = await fetch("/dataJSON/societyx.json");
-        // const workshopRes = await fetch('/dataJSON/workshop.json')
-
-        // const societiesData = await societiesRes.json();
-        // const clubsData = await clubsRes.json();
-        // const workshopsData = await workshopRes.json()
-
-        // setSocieties(societiesData);
-        // setClubs(clubsData);
-        // setWorkshops(workshopsData)
         const res = await fetch(`${API_URL}/api/events`);
         if (!res.ok) throw new Error(`Events request failed (${res.status})`);
         const data = await res.json();
@@ -54,53 +294,23 @@ export const Register = () => {
         console.error("Failed to fetch JSON:", err);
       }
     };
-
     fetchData();
   }, []);
 
-  // const finalData = React.useMemo(() => {
-  //   const map = new Map();
-
-    
-  //   clubs.forEach(club => {
-  //     if (map.has(club.name)) {
-  //       map.get(club.name).events.push({ ...club, displayName: club.title || club.name });
-  //     } else {
-  //       map.set(club.name, { societyName: club.name, events: [{ ...club, displayName: club.title || club.name }] });
-  //     }
-  //   });
-    
-  //   societies.forEach(soc => {
-  //     map.set(soc.societyName, {
-  //       societyName: soc.societyName,
-  //       events: soc.events.map(ev => ({ ...ev, displayName: ev.title || ev.name }))
-  //     });
-  //   });
-
-  //   workshops.forEach(wk => {
-      
-  //    if (map.has(wk.name)) {
-     
-  //       map.get(wk.name).events.push({ ...wk, displayName: wk.title || wk.name });
-  //     } else {
-  //       map.set(wk.name, { societyName: wk.name, events: [{ ...wk, displayName: wk.title || wk.name }] });
-  //     }
-  //   })    
-  //   return Array.from(map.values());
-  // }, [societies, clubs, workshops]);
   const getCategory = (ev) => {
-  const raw = String(ev.eventType || ev.category || ev.type || "").toLowerCase();
-  if (raw.startsWith("comp")) return "competition";
-  if (raw.startsWith("demo")) return "demonstration";
-  if (raw.startsWith("game")) return "game";
-  return null; 
+    const raw = String(ev.eventType || ev.category || ev.type || "").toLowerCase();
+    if (raw.startsWith("comp")) return "competition";
+    if (raw.startsWith("demo")) return "demonstration";
+    if (raw.startsWith("game")) return "game";
+    return null;
   };
+
   const eventsByCategory = React.useMemo(() => {
-  const groups = { competition: [], demonstration: [], game: [] };
-  events.forEach((ev) => {
-    const cat = getCategory(ev);
-    if (cat) groups[cat].push(ev);
-    else console.warn("Event without valid category:", ev.name);
+    const groups = { competition: [], demonstration: [], game: [] };
+    events.forEach((ev) => {
+      const cat = getCategory(ev);
+      if (cat) groups[cat].push(ev);
+      else console.warn("Event without valid category:", ev.name);
     });
     return groups;
   }, [events]);
@@ -109,6 +319,7 @@ export const Register = () => {
     () => Object.fromEntries(events.map((e) => [e._id, e])),
     [events]
   );
+
   const {
     register: reactRegister,
     handleSubmit,
@@ -122,14 +333,14 @@ export const Register = () => {
     defaultValues: {
       registrationType: "individual",
       teamMembers: [],
-    }
+    },
   });
 
   const { notify } = useSnackbar();
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "teamMembers"
+    name: "teamMembers",
   });
 
   const watchedEvents = watch("events");
@@ -149,22 +360,33 @@ export const Register = () => {
   const [idDocument, setIdDocument] = useState(null);
   const [idDocumentError, setIdDocumentError] = useState("");
   const [teamSizeError, setTeamSizeError] = useState("");
+
+  // OTP state
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
+
   const competitionCount = selectedEventsState.filter(
-  (id) => eventById[id] && getCategory(eventById[id]) === "competition"
+    (id) => eventById[id] && getCategory(eventById[id]) === "competition"
   ).length;
   const registrationFee = computeFee(competitionCount);
+
   useEffect(() => {
     try {
       reactRegister("events");
-    } catch { }
+    } catch {}
   }, [reactRegister]);
 
-  // Clear team size error when team members change
   useEffect(() => {
     if (watchedRegistrationType === "team" && fields.length > 0) {
       setTeamSizeError("");
     }
   }, [fields.length, watchedRegistrationType]);
+
+  // Reset email verification if the email changes
+  useEffect(() => {
+    setEmailVerified(false);
+  }, [watchedEmail]);
 
   const isValidEmail = (email) => {
     if (!email || typeof email !== "string") return false;
@@ -184,32 +406,19 @@ export const Register = () => {
     return undefined;
   };
 
-  // const uploadToCloudinary = async (file) => {
-  //   const cloudName = "dpjrslhwg";
-  //   const uploadPreset = "technozian_upload";
-
-  //   const formData = new FormData();
-  //   formData.append("file", file);
-  //   formData.append("upload_preset", uploadPreset);
-
-  //   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
-  //     method: "POST",
-  //     body: formData,
-  //   });
-
-  //   const data = await res.json();
-  //   return data.secure_url;
-  // };
-
+  // Called when the form is submitted — opens OTP modal first if not verified
   const onSubmit = async (formData) => {
     try {
-      // Reset custom errors
       setTeamSizeError("");
       setIdDocumentError("");
       setPaymentError("");
 
-      // Validate events selection
-      const eventsVal = Array.isArray(formData.events) ? formData.events : (formData.events ? [formData.events] : []);
+      // Validate events
+      const eventsVal = Array.isArray(formData.events)
+        ? formData.events
+        : formData.events
+        ? [formData.events]
+        : [];
       if (!eventsVal.length) {
         setError("events", { type: "required", message: "Please select at least one event to participate." });
         return;
@@ -217,7 +426,7 @@ export const Register = () => {
         clearErrors("events");
       }
 
-      // Validate team registration
+      // Validate team
       if (formData.registrationType === "team") {
         const teamSize = 1 + (formData.teamMembers?.length || 0);
         if (teamSize > 5) {
@@ -237,7 +446,7 @@ export const Register = () => {
         return;
       }
 
-      // Payment screenshot required if email not nitw.ac.in
+      // Payment screenshot required if not NITW
       const needsPayment = isValidEmail(watchedEmail) && !isNitwEmail(watchedEmail);
       const payFile = normalizeFirstFile(paymentScreenshot);
       if (needsPayment && !payFile) {
@@ -246,33 +455,41 @@ export const Register = () => {
         return;
       }
 
-      // Generate password
-      // const rand8 = Math.floor(10000000 + Math.random() * 90000000);
-      // const password = String(rand8);
-
-
-
-      // Preserve original behavior
-      const authData = {
-        ...formData,
-        idDocument: idFile,
-        paymentScreenshot: payFile || undefined,
-      };
-
-      // console.log("Registering with data", authData);
-      // notify && notify('Submitting registration...', { variant: 'info' })
-      try {
-        await authRegister(authData);
-        // notify && notify('Registration submitted successfully', { variant: 'success' })
-      } catch (err) {
-        console.error('Auth register failed', err)
-        notify && notify(err?.message || 'Registration failed', { variant: 'error' })
+      // If email is not verified yet, open OTP modal
+      if (!emailVerified) {
+        if (!isValidEmail(watchedEmail)) {
+          setError("email", { type: "manual", message: "Please enter a valid email address." });
+          return;
+        }
+        setPendingFormData({ ...formData, idDocument: idFile, paymentScreenshot: payFile || undefined });
+        setOtpModalOpen(true);
+        return;
       }
 
-      setPayModalOpen(false);
+      // Email already verified — proceed directly
+      await submitRegistration({ ...formData, idDocument: idFile, paymentScreenshot: payFile || undefined });
     } catch (err) {
       console.error("Register submit error:", err);
-      notify && notify(err.message || "Something went wrong during registration.", { variant: 'error' });
+      notify && notify(err.message || "Something went wrong during registration.", { variant: "error" });
+    }
+  };
+
+  // Called after OTP is successfully verified
+  const handleOtpVerified = async () => {
+    setEmailVerified(true);
+    setOtpModalOpen(false);
+    if (pendingFormData) {
+      await submitRegistration(pendingFormData);
+      setPendingFormData(null);
+    }
+  };
+
+  const submitRegistration = async (authData) => {
+    try {
+      await authRegister(authData);
+    } catch (err) {
+      console.error("Auth register failed", err);
+      notify && notify(err?.message || "Registration failed", { variant: "error" });
     }
   };
 
@@ -290,9 +507,12 @@ export const Register = () => {
             </span>
           </h1>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm">
-            {!(watchedEmail && isNitwEmail(watchedEmail))&&(<div className="px-4 py-2 bg-gray rounded-lg">
-              Registration fee: <span className="font-semibold text-cyan">₹{registrationFee}</span>
-            </div>)}
+            {!(watchedEmail && isNitwEmail(watchedEmail)) && (
+              <div className="px-4 py-2 bg-gray rounded-lg">
+                Registration fee:{" "}
+                <span className="font-semibold text-cyan">₹{registrationFee}</span>
+              </div>
+            )}
             <div className="px-4 py-2 bg-gray rounded-lg">
               Team size: <span className="font-semibold text-cyan">Up to 5 members</span>
             </div>
@@ -349,21 +569,43 @@ export const Register = () => {
                   )}
                 </div>
 
+                {/* Email field with verification badge */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Email *</label>
-                  <input
-                    type="email"
-                    placeholder="your.email@domain.com"
-                    {...reactRegister("email", { required: "Email is required" })}
-                    className="w-full px-4 py-3 bg-gray rounded-lg text-white placeholder-grayishWhite/50 focus:outline-none focus:ring-2 focus:ring-cyan transition"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="your.email@domain.com"
+                      {...reactRegister("email", { required: "Email is required" })}
+                      className="w-full px-4 py-3 bg-gray rounded-lg text-white placeholder-grayishWhite/50 focus:outline-none focus:ring-2 focus:ring-cyan transition pr-28"
+                    />
+                    {emailVerified ? (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 text-xs font-semibold flex items-center gap-1">
+                        ✓ Verified
+                      </span>
+                    ) : isValidEmail(watchedEmail) ? (
+                      <button
+                        type="button"
+                        onClick={() => setOtpModalOpen(true)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-cyan/20 text-cyan rounded hover:bg-cyan/30 transition"
+                      >
+                        Verify
+                      </button>
+                    ) : null}
+                  </div>
                   {errors.email && (
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-red-400 text-sm">⚠</span>
                       <p className="text-red-400 text-sm">{errors.email.message}</p>
                     </div>
                   )}
+                  {!emailVerified && isValidEmail(watchedEmail) && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      ⚠ Email not verified — you'll be prompted to verify before submitting.
+                    </p>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Password *</label>
                   <input
@@ -383,6 +625,7 @@ export const Register = () => {
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2">College *</label>
                   <input
@@ -399,7 +642,7 @@ export const Register = () => {
                   )}
                 </div>
 
-                {/* Team Members Fields */}
+                {/* Team Members */}
                 {watchedRegistrationType === "team" && (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -410,7 +653,7 @@ export const Register = () => {
                     </div>
 
                     {teamSizeError && (
-                      <div className="flex items-center gap-2 p-3 bg-red-500/10  rounded-lg">
+                      <div className="flex items-center gap-2 p-3 bg-red-500/10 rounded-lg">
                         <span className="text-red-400 text-sm">⚠</span>
                         <p className="text-red-400 text-sm">{teamSizeError}</p>
                       </div>
@@ -423,7 +666,7 @@ export const Register = () => {
                             type="text"
                             placeholder={`Team member ${index + 2} name`}
                             {...reactRegister(`teamMembers.${index}.name`, {
-                              required: "Team member name is required"
+                              required: "Team member name is required",
                             })}
                             className="flex-1 px-4 py-3 bg-gray rounded-lg text-white placeholder-grayishWhite/50 focus:outline-none focus:ring-2 focus:ring-cyan transition"
                           />
@@ -490,14 +733,15 @@ export const Register = () => {
                     className="w-full text-sm text-white file:bg-cyan file:text-black file:px-4 file:py-2 rounded-lg hover:file:bg-cyanLight transition"
                   />
                   {idDocumentError && (
-                    <div className="flex items-center gap-2 mt-2 p-3 bg-red-500/10  rounded-lg">
+                    <div className="flex items-center gap-2 mt-2 p-3 bg-red-500/10 rounded-lg">
                       <span className="text-red-400 text-sm">⚠</span>
                       <p className="text-red-400 text-sm">{idDocumentError}</p>
                     </div>
                   )}
                 </div>
 
-                {(isValidEmail(watchedEmail) && !isNitwEmail(watchedEmail)) && (
+                {/* QR Payment section (for non-NITW emails) */}
+                {isValidEmail(watchedEmail) && !isNitwEmail(watchedEmail) && (
                   <div className="pt-6">
                     <div className="bg-gray rounded-lg p-4 mb-4">
                       <div className="flex justify-between items-center mb-3">
@@ -509,19 +753,36 @@ export const Register = () => {
                           One-time payment for entire team
                         </p>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setPayModalOpen(true)}
-                        className="w-full px-4 py-3 bg-cyan/20 text-white rounded-lg hover:bg-cyan/30 transition font-medium"
-                      >
-                        Pay & Upload Screenshot
-                      </button>
+                      {paymentScreenshot ? (
+                        <div className="space-y-2">
+                          <p className="text-green-400 text-sm">✓ Screenshot uploaded: {paymentScreenshot.name}</p>
+                          <button
+                            type="button"
+                            onClick={() => setPayModalOpen(true)}
+                            className="w-full px-4 py-2 bg-cyan/10 text-cyan rounded-lg hover:bg-cyan/20 transition text-sm"
+                          >
+                            Change Screenshot / View QR
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPayModalOpen(true)}
+                          className="w-full px-4 py-3 bg-cyan/20 text-white rounded-lg hover:bg-cyan/30 transition font-medium"
+                        >
+                          Pay via QR & Upload Screenshot
+                        </button>
+                      )}
+                      {paymentError && !payModalOpen && (
+                        <p className="text-red-400 text-sm mt-2">⚠ {paymentError}</p>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Event Selection */}
             <div className="bg-darkGray rounded-xl p-6 md:p-8 shadow-lg shadow-cyan/10">
               <h2 className="text-xl font-semibold mb-6 pb-3 border-b border-cyan/30">
                 Event Selection
@@ -576,7 +837,7 @@ export const Register = () => {
                   </div>
 
                   <div className="space-y-6 max-h-[500px] overflow-y-auto">
-                    {categories.map(({key,title}) => (
+                    {categories.map(({ key, title }) => (
                       <div key={key} className="mb-4">
                         <h3 className="text-lg font-semibold mb-2 border-b border-cyan/30 pb-1">
                           {title}
@@ -604,7 +865,9 @@ export const Register = () => {
                                   setValue("events", next, { shouldValidate: true });
                                   if (next.length > 0) clearErrors("events");
                                 }}
-                                className={`flex items-center p-2 rounded-lg cursor-pointer transition hover:bg-gray ${isSelected ? "bg-cyan/20" : "bg-black/10"}`}
+                                className={`flex items-center p-2 rounded-lg cursor-pointer transition hover:bg-gray ${
+                                  isSelected ? "bg-cyan/20" : "bg-black/10"
+                                }`}
                               >
                                 <input
                                   type="checkbox"
@@ -612,7 +875,9 @@ export const Register = () => {
                                   readOnly
                                   className="sr-only"
                                 />
-                                <span className="text-sm font-medium">{ev.name || ev.title || "Unnamed Event"}</span>
+                                <span className="text-sm font-medium">
+                                  {ev.name || ev.title || "Unnamed Event"}
+                                </span>
                               </label>
                             );
                           })}
@@ -638,70 +903,29 @@ export const Register = () => {
         </form>
       </div>
 
+      {/* QR Payment Modal */}
       {payModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-darkGray rounded-2xl p-6 md:p-8 max-w-md w-full shadow-lg shadow-cyan/50 animate-fadeIn">
-            <h2 className="text-2xl font-bold mb-4 text-cyan text-center">
-              Payment Details
-            </h2>
+        <QrPaymentModal
+          amount={computeAmount()}
+          registrationType={watchedRegistrationType}
+          paymentScreenshot={paymentScreenshot}
+          setPaymentScreenshot={setPaymentScreenshot}
+          paymentError={paymentError}
+          setPaymentError={setPaymentError}
+          onClose={() => setPayModalOpen(false)}
+        />
+      )}
 
-            <div className="mb-6 text-white space-y-2 text-sm">
-              <p className="font-medium">Bank Account Info:</p>
-              <p>Account Name: <span className="font-semibold uppercase">Technozion</span></p>
-              <p>Account No: <span className="font-semibold">62046706567</span></p>
-              <p>IFSC: <span className="font-semibold">SBIN0020149</span></p>
-              <p>Bank: <span className="font-semibold">SBI</span></p>
-            </div>
-            {watchedRegistrationType === "team" && (
-              <p className="text-cyan/80 mt-3 pt-3 border-t border-cyan/30">
-                ℹ️ One payment covers the entire team
-              </p>
-            )}
-
-            <div className="mb-6">
-              <label className="block mb-2 font-medium text-white">Upload Payment Screenshot *</label>
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  const problem = validateUpload(file);
-                  if (problem) {
-                    setPaymentScreenshot(null);
-                    setPaymentError(problem);
-                    e.target.value = "";
-                    return;
-                  }
-                  setPaymentScreenshot(file);
-                  setPaymentError("");
-                 }}
-                className="w-full text-sm text-white file:bg-cyan file:text-black file:px-4 file:py-2 rounded-lg hover:file:bg-cyanLight transition"
-              />
-              {paymentError && (
-                <div className="flex items-center gap-2 mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <span className="text-red-400 text-sm">⚠</span>
-                  <p className="text-red-400 text-sm">{paymentError}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-
-                onClick={() => setPayModalOpen(false)}
-                className="px-5 py-2 rounded-lg bg-gray/20 hover:bg-gray/30 transition font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setPayModalOpen(false)}
-                className="px-5 py-2 rounded-lg bg-cyan/20 text-white hover:bg-cyan/30 transition font-medium"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* OTP Verification Modal */}
+      {otpModalOpen && (
+        <OtpVerificationStep
+          email={watchedEmail}
+          onVerified={handleOtpVerified}
+          onCancel={() => {
+            setOtpModalOpen(false);
+            setPendingFormData(null);
+          }}
+        />
       )}
     </div>
   );
