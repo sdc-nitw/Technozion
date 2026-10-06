@@ -26,7 +26,6 @@ export default function Navbar() {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 725);
 
   const location = useLocation();
-  const isRegisterPage = location.pathname === '/register';
 
   useEffect(() => {
     const handleResize = () => {
@@ -64,7 +63,7 @@ export default function Navbar() {
 
   return (
     <>
-      {!menuOpen && isRegisterPage && <div className="navbar-background"></div>}
+      <div className="navbar-background"></div>
 
       {!menuOpen ? (
         <div className="logo">

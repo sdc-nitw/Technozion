@@ -11,7 +11,7 @@ const MAX_FEE = 2000; // cap if needed
 
 // ─── Static config ────────────────────────────────────────────────────────────
 const BROCHURE_URL = "/brochure.pdf";
-const QR_SRC = "/payment-qr.png";
+const QR_SRC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xMCAxMGgzMHYzMEgxMHptMTAgMTBoMTB2MTBIMjB6bTQwLTQwaDMwdjMwSDUwem0xMCAxMGgxMHYxMEg2MHptLTUwIDQwaDMwdjMwSDEwem0xMCAxMGgxMHYxMEgyMHptMzAtdjEwaDEwdjEwSDQwem0yMCAwaDMwdjMwSDYwem0xMCAxMGgxMHYxMEg3MHoiIGZpbGw9IiMwMDAiLz48L3N2Zz4=";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -89,20 +89,82 @@ export default function Register() {
     return { total: 0, mode: null, competitionCount: 0 };
   }, [selectedEventIds, registrableEvents]);
 
+  // ── OTP State ─────────────────────────────────────────────────────────────
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+  
+  const watchedEmail = watch("email");
+
+  // Reset verification if email changes
+  useEffect(() => {
+    setEmailVerified(false);
+  }, [watchedEmail]);
+
+  const handleSendOtp = async () => {
+    if (!watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)) {
+      alert("Please enter a valid email first.");
+      return;
+    }
+    setOtpSending(true);
+    setOtpError("");
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: watchedEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to send OTP");
+      setOtpModalOpen(true);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode) return;
+    setOtpError("");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: watchedEmail, otp: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Invalid OTP");
+      
+      setEmailVerified(true);
+      setOtpModalOpen(false);
+    } catch (err) {
+      setOtpError(err.message);
+    }
+  };
+
   // ── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (data) => {
+    if (!emailVerified) {
+      alert("Please verify your email address before submitting.");
+      return;
+    }
     const fd = new FormData();
     fd.append("name", data.name);
     fd.append("gender", data.gender);
     fd.append("email", data.email);
     fd.append("college", data.college);
     fd.append("collegeId", data.collegeId[0]);
-    fd.append("paymentScreenshot", data.paymentScreenshot[0]);
+    if (data.paymentScreenshot?.[0]) {
+      fd.append("paymentScreenshot", data.paymentScreenshot[0]);
+    }
     fd.append("members", JSON.stringify(data.members || []));
     fd.append("events", JSON.stringify(data.events));
     fd.append("amount", total.toString());
 
-    const res = await fetch("/api/register", { method: "POST", body: fd });
+    const res = await fetch("/api/auth/register", { method: "POST", body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       alert(err.message || "Registration failed. Please try again.");
@@ -112,6 +174,45 @@ export default function Register() {
   // ─── UI ───────────────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-screen bg-black text-neutral-100 py-12 px-4 sm:px-6 overflow-hidden">
+      
+      {/* OTP Modal */}
+      {otpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#18202c] border border-[#00f7ff]/30 rounded-2xl p-6 w-full max-w-sm shadow-[0_0_40px_rgba(0,247,255,0.15)]">
+            <h3 className="text-xl font-bold text-white mb-2">Verify Email</h3>
+            <p className="text-xs text-neutral-400 mb-6">
+              We sent a 6-digit code to <span className="text-cyan-400 font-mono">{watchedEmail}</span>.
+            </p>
+            <input
+              type="text"
+              maxLength={6}
+              placeholder="Enter 6-digit OTP"
+              className={`${inputCls} text-center tracking-[0.5em] font-mono text-lg`}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+            />
+            {otpError && <p className="text-red-400 text-xs mt-2 text-center">{otpError}</p>}
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setOtpModalOpen(false)}
+                className="flex-1 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                className="flex-1 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-bold shadow-[0_0_15px_rgba(0,247,255,0.4)] transition"
+              >
+                Verify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Background Constellation Canvas & Spotlight (Register Only) ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <WebCanvas />
@@ -175,18 +276,35 @@ export default function Register() {
                 )}
               </div>
 
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Email Address</label>
-                <input
-                  type="email"
-                  placeholder="pikachu@example.com"
-                  className={inputCls}
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
-                  })}
-                />
-                {errors.email && (
+                <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="pikachu@example.com"
+                    className={`${inputCls} pr-24`}
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
+                    })}
+                    readOnly={emailVerified}
+                  />
+                  {emailVerified ? (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 text-xs font-bold tracking-wide flex items-center gap-1 bg-[#18202c] pl-2">
+                      ✓ VERIFIED
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={otpSending || !watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-[#00f7ff]/20 hover:bg-[#00f7ff]/30 text-[#00f7ff] text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {otpSending ? "SENDING..." : "VERIFY"}
+                    </button>
+                  )}
+                </div>
+                {errors.email && !emailVerified && (
                   <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
                 )}
               </div>

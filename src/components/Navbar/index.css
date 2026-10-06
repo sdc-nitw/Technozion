@@ -5,18 +5,6 @@
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 
-/* ===== Fixed navbar wrapper — always on top ===== */
-.navbar-wrapper {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 70px;
-	z-index: 100;
-	display: flex;
-	align-items: center;
-}
-
 .active {
 	color: white;
 }
@@ -26,27 +14,23 @@ nav {
 	width: 20%;
 	justify-content: space-evenly;
 	color: white;
-	position: relative;
-	z-index: 2;
+	position: fixed;
+	z-index: 10;
 	padding: 10px 0px 0px 10px;
 	border-radius: 10px;
 }
 
 .logo {
 	display: flex;
-	position: absolute;
+	position: fixed; /* Changed from absolute to fixed so it stays on scroll */
 	background-color: transparent;
 	justify-content: center;
 	align-items: center;
 	width: 100%;
-	z-index: 1;
-	top: 50%;
-	transform: translateY(-50%);
-	margin-top: 0;
-	pointer-events: none; /* let clicks through to nav items */
+	margin-top: 1%;
+	z-index: 10;
+	pointer-events: none;
 }
-
-/* Make the logo link itself clickable */
 .logo a {
 	pointer-events: all;
 }
@@ -181,9 +165,9 @@ nav img {
 	display: flex;
 	justify-content: flex-end;
 	flex: 1;
-	position: relative;
-	right: 0;
-	z-index: 2;
+	position: fixed; /* Ensure it stays fixed to the right */
+	right: 0; /* Align to the right */
+	z-index: 10;
 }
 
 
@@ -244,12 +228,11 @@ nav img {
 @media (max-width: 725px) {
 	nav .menu {
 	  display: flex;
-	  margin-top: 0;
+	  margin-top: 1.6rem;
 	  margin-right: 1rem;
-	  width: 1.75rem;
-	  height: 1.5rem;
+	  width: 1.75rem; /* Reduce width of the menu icon */
+	  height: 1.5rem;  /* Reduce height of the menu icon */
 	  z-index: 10;
-	  position: relative;
 	}
   
 	.ham {
@@ -294,12 +277,6 @@ nav img {
 	  align-items: center;
 	}
 
-	/* When mobile menu is open, allow the wrapper to expand */
-	.navbar-wrapper:has(.menu-open) {
-	  height: auto;
-	  align-items: flex-start;
-	  flex-direction: column;
-	}
   
 	nav ul.open {
 	  display: flex;
@@ -349,22 +326,21 @@ nav img {
 
   @media (max-width: 768px) {
   .logo {
-    justify-content: flex-start;
-    width: auto;
-    left: 15px;
-    margin-top: 0;
-    transform: translateY(-50%);
+    justify-content: flex-start; /* This is the key change to align left */
+    width: auto; /* Let the container be only as wide as the logo */
+    left: 15px; /* Add some space from the left edge */
+    margin-top: 1.6rem; /* A fixed margin often works better on mobile */
   }
 }
 
 
-/* This block provides the solid background for the navbar wrapper */
+/* This block provides the solid background */
 .navbar-background {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 75px; /* Adjust this height to match your navbar's total height */
   background-color: rgba(0, 0, 0, 0.92);
-  z-index: 0; /* Sits behind the nav items */
+  z-index: 9; /* Sits behind the nav items (z-index: 10) */
 }
