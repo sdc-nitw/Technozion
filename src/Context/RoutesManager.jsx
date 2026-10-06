@@ -17,12 +17,14 @@ const RoutesManager = () => {
 
 	return (
 		<Routes>
-			<Route path="/auth" element={<Navigate to="/auth/register" replace />} />
-			<Route path="/auth/login" element={<Navigate to="/auth/register" replace />} />
-			<Route path="/login" element={<Navigate to="/auth/register" replace />} />
+			{/* Login page removed — no authentication required for registration */}
+			<Route path="/auth" element={<Navigate to="/register" replace />} />
+			<Route path="/auth/login" element={<Navigate to="/register" replace />} />
+			<Route path="/auth/register" element={<Navigate to="/register" replace />} />
+			<Route path="/login" element={<Navigate to="/register" replace />} />
+
 			<Route path="/" element={<Home />} />
-			<Route path="/auth/register" element={<Register />} />
-			<Route path="/register" element={<Navigate to="/auth/register" replace />} />
+			<Route path="/register" element={<Register />} />
 			<Route path="/about" element={<About />} />
 			<Route path="/events" element={<EventsPage />} />
 			<Route path="/past-events" element={<PastEvents />} />

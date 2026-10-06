@@ -16,24 +16,17 @@ const commonRightNavigation = [
 ];
 
 const guestNavigation = [
-  { name: "REGISTER", link: "/auth/register" },
+  { name: "REGISTER", link: "/register" },
 ];
 
 const rightNavigation = [...commonRightNavigation, ...guestNavigation];
 
-const dropList = [
-  { name: "List1", link: "/l1" },
-  { name: "List2", link: "/l2" },
-  { name: "List3", link: "/l3" },
-];
-
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 725);
-  const [showDropdown, setShowDropdown] = useState(false);
 
   const location = useLocation();
-  const isRegisterPage = ['/auth/register', '/register'].includes(location.pathname);
+  const isRegisterPage = location.pathname === '/register';
 
   useEffect(() => {
     const handleResize = () => {
@@ -49,7 +42,6 @@ export default function Navbar() {
 
   const closeMenu = () => {
     setMenuOpen(false);
-    setShowDropdown(false);
   };
 
   const renderLink = (menuItem) => (
@@ -58,36 +50,9 @@ export default function Navbar() {
     </NavLink>
   );
 
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
-  };
-
   const listItems = navigation.map((menuItem, index) => (
     <li key={index}>
-      {menuItem.name === "REVENTS" ? (
-        <div className="dropdown2-trigger">
-          <button
-            onClick={toggleDropdown}
-            className="nav-button-link"
-            type="button"
-          >
-            {menuItem.name}
-          </button>
-          {showDropdown && (
-            <ul className="dropdown2">
-              {dropList.map((dropItem, idx) => (
-                <li key={idx}>
-                  <NavLink to={dropItem.link} onClick={closeMenu}>
-                    {dropItem.name}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        renderLink(menuItem)
-      )}
+      {renderLink(menuItem)}
     </li>
   ));
 
