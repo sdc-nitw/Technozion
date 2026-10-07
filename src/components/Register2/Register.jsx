@@ -4,7 +4,7 @@ import { fetchEvents } from "../Events/eventsData";
 import { WebCanvas } from "../bg_animation/bg_animate";
 import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
-import { isNitwEmail } from "../utils/registrationChecks";
+import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
 const TEAM_SIZE = 4; // fixed team size
@@ -21,6 +21,13 @@ const inputCls =
   "w-full px-4 py-2.5 rounded-lg bg-[#0e131b] border border-[#26354a] text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-[#00f7ff] focus:ring-1 focus:ring-[#00f7ff] focus:shadow-[0_0_15px_rgba(0,247,255,0.35)] transition-all duration-200";
 const labelCls =
   "block text-xs font-mono uppercase tracking-wider text-neutral-400 mb-1.5";
+
+const rollNumberRules = {
+  required: "NITW roll number is required",
+  setValueAs: normalizeRollNumber,
+  validate: (value) => isValidNitwRollNumber(value) || "Use 3–32 letters, digits or hyphens",
+  shouldUnregister: true,
+};
 
 export default function Register() {
   // ── Events state ──────────────────────────────────────────────────────────
@@ -49,7 +56,7 @@ export default function Register() {
   } = useForm({
     defaultValues: {
       events: [],
-      members: Array(TEAM_SIZE - 1).fill(""),
+      members: Array.from({ length: TEAM_SIZE - 1 }, () => ({ name: "", studentType: "external", rollNumber: "" })),
     },
   });
 
@@ -62,6 +69,7 @@ export default function Register() {
   const collegeIdFile = watch("collegeId");
   const paymentFile = watch("paymentScreenshot");
   const watchedEmail = watch("email") || "";
+  const watchedMembers = watch("members") || [];
   const isNitw = isNitwEmail(watchedEmail);
 
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
@@ -162,10 +170,15 @@ export default function Register() {
       name: data.name,
       gender: data.gender,
       email: data.email,
+      rollNumber: isNitw ? normalizeRollNumber(data.rollNumber) : undefined,
       collegeName: data.college,
       idDocument: data.collegeId[0],
       paymentScreenshot: data.paymentScreenshot?.[0] || null,
-      teamMembers: data.members ? data.members.map(name => ({ name })) : [],
+      teamMembers: (data.members || []).map((member) => ({
+        name: member.name,
+        studentType: member.studentType,
+        rollNumber: member.studentType === "nitw" ? normalizeRollNumber(member.rollNumber) : undefined,
+      })),
       events: data.events || [],
       registrationType: data.events?.length > 0 ? (data.members?.length > 0 ? "team" : "individual") : "individual",
       password: data.password,
@@ -312,6 +325,17 @@ export default function Register() {
                 )}
               </div>
 
+              {isNitw ? (
+                <div>
+                  <label htmlFor="leader-roll-number" className={labelCls}>NITW Roll Number</label>
+                  <input id="leader-roll-number" type="text" autoComplete="off" placeholder="Enter your NITW roll number" className={inputCls} {...register("rollNumber", rollNumberRules)} />
+                  <p className="text-xs text-neutral-400 mt-2">Your roll number will be your participant ID.</p>
+                  {errors.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.rollNumber.message}</p>}
+                </div>
+              ) : (
+                <p className="text-xs text-cyan-300 sm:col-span-2">Your unique 26TZ… participant ID will be assigned after registration.</p>
+              )}
+
               <div>
                 <label className={labelCls}>Password</label>
                 <input
@@ -376,7 +400,7 @@ export default function Register() {
                 Team Members ({TEAM_SIZE} Members Total)
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
-                Enter your remaining teammates' names below. Only names are required for other members.
+                Enter each teammate's name and institution type. NITW students use their roll number as their ID; others receive a unique 26TZ… ID.
               </p>
             </div>
 
@@ -389,11 +413,24 @@ export default function Register() {
                   <input
                     placeholder="Name"
                     className={inputCls}
-                    {...register(`members.${i}`, { required: "Member name is required" })}
+                    aria-label={`Member ${i + 2} name`}
+                    {...register(`members.${i}.name`, { required: "Member name is required" })}
                   />
-                  {errors.members?.[i] && (
-                    <p className="text-red-400 text-xs mt-1.5">{errors.members[i].message}</p>
+                  {errors.members?.[i]?.name && (
+                    <p className="text-red-400 text-xs mt-1.5">{errors.members[i].name.message}</p>
                   )}
+                  <label htmlFor={`member-${i}-institution`} className={`${labelCls} mt-4`}>Institution</label>
+                  <select id={`member-${i}-institution`} className={inputCls} {...register(`members.${i}.studentType`)}>
+                    <option value="external">Other institution</option>
+                    <option value="nitw">NITW student</option>
+                  </select>
+                  {watchedMembers[i]?.studentType === "nitw" ? (
+                    <div className="mt-4">
+                      <label htmlFor={`member-${i}-roll`} className={labelCls}>NITW Roll Number</label>
+                      <input id={`member-${i}-roll`} type="text" placeholder="Roll number" className={inputCls} {...register(`members.${i}.rollNumber`, rollNumberRules)} />
+                      {errors.members?.[i]?.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.members[i].rollNumber.message}</p>}
+                    </div>
+                  ) : <p className="text-xs text-cyan-300 mt-3">A 26TZ… ID will be assigned after registration.</p>}
                 </div>
               ))}
             </div>

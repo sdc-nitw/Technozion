@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
 import {API_URL} from '../config'
-import { isNitwEmail } from '../components/utils/registrationChecks'
+import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from '../components/utils/registrationChecks'
 
 const AuthContext = createContext()
 export const useAuth = () => useContext(AuthContext)
@@ -74,6 +74,10 @@ const AuthProvider = ({ children }) => {
   if(loading) return;
   setLoading(true);
   try {
+    if (isNitwEmail(registrationData.email) && !isValidNitwRollNumber(registrationData.rollNumber)) {
+      notify('Please enter your NITW roll number.', { variant: 'error' });
+      return;
+    }
     // Helper: upload a file to Cloudinary and return the URL
     const uploadToCloudinary = async (file) => {
       const cloudName = "dpjrslhwg"; // replace with your Cloudinary cloud name
@@ -135,6 +139,7 @@ const AuthProvider = ({ children }) => {
     const payload = {
       name: registrationData.name || "",
       email: registrationData.email || "",
+      rollNumber: isNitwEmail(registrationData.email) ? normalizeRollNumber(registrationData.rollNumber) : undefined,
       password: registrationData.password || "",
       collegeName: registrationData.collegeName || "",
       accommodation: registrationData.accommodation || false,
@@ -155,7 +160,7 @@ const AuthProvider = ({ children }) => {
     if (res.ok) {
     // No session yet: the user must verify their email first, then log in
     notify(data.message || 'Account created. Check your email to verify it.', { variant: 'success' })
-    navigate("/login", { state: { verifyEmail: data.email || payload.email } });
+    navigate("/registration-complete", { state: { verifyEmail: data.email || payload.email, participants: data.participants || [] } });
     }
     else {
       console.log("register error", data);

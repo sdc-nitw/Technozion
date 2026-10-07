@@ -8,6 +8,7 @@ import Card from '../components/card/card.jsx';
 import PastEvents from '../components/PastEvents/PastEvents.jsx';
 import { ComingSoon } from "../components/ComingSoon/ComingSoon.jsx";
 import Register from '../components/Register2/Register.jsx';
+import RegistrationReceipt from '../components/Register2/RegistrationReceipt.jsx';
 import VerifyEmail from "../components/Login/VerifyEmail";
 
 const RoutesManager = () => {
@@ -27,6 +28,7 @@ const RoutesManager = () => {
 
 			<Route path="/" element={<Home />} />
 			<Route path="/register" element={<Register />} />
+			<Route path="/registration-complete" element={<RegistrationReceipt />} />
 			<Route path="/about" element={<About />} />
 			<Route path="/events" element={<EventsPage />} />
 			<Route path="/past-events" element={<PastEvents />} />
