@@ -1,0 +1,420 @@
+/* Shared finishing rules load after component styles and Tailwind utilities. */
+
+.home-page .about-container {
+  padding-top: 32px;
+}
+
+.coming-soon-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coming-soon-panel {
+  width: 100%;
+  max-width: 620px;
+  padding: clamp(24px, 5vw, 48px);
+  text-align: center;
+}
+
+.coming-soon-panel p {
+  margin-top: 20px;
+  color: var(--color-muted);
+}
+
+.registration-page h1, .receipt-page h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: .025em;
+}
+
+.registration-page h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
+.registration-page h3 {
+  font-size: 1.15rem;
+}
+
+.ui-input {
+  min-height: 44px;
+  color: var(--color-text);
+  background: var(--color-input);
+  border-color: var(--color-border);
+}
+
+.ui-input::placeholder {
+  color: #8b9eae;
+}
+
+.ui-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgb(103 222 219 / 12%);
+}
+
+.event-choice {
+  position: relative;
+  min-height: 44px;
+}
+
+.event-choice:hover {
+  border-color: #547582;
+}
+
+.event-choice:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.event-choice-selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.event-choice-selected span {
+  color: #d2c7e3;
+}
+
+.registration-page label:has(input[type="file"]):focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.registration-page button:disabled {
+  cursor: not-allowed;
+}
+
+.event_card .section-text {
+  color: var(--color-text);
+}
+
+.event_card .section-label {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+.event_card .back-button {
+  min-height: 44px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+h1, h2, h3, .brand-heading {
+  font-weight: 600;
+}
+
+/* Dimensional tech theme: shared across every routed screen. */
+
+.site-background {
+  overflow: hidden;
+  background: radial-gradient(ellipse at 76% 18%, rgb(18 108 113 / 22%), transparent 42%), radial-gradient(ellipse at 3% 62%, rgb(27 80 108 / 18%), transparent 46%), #04090e;
+}
+
+.site-background::before {
+  content: "";
+  position: absolute;
+  left: -20%;
+  bottom: -36%;
+  width: 140%;
+  height: 88%;
+  background-image: linear-gradient(rgb(89 224 204 / 12%) 1px, transparent 1px), linear-gradient(90deg, rgb(89 224 204 / 12%) 1px, transparent 1px);
+  background-size: 70px 70px;
+  transform: perspective(600px) rotateX(62deg) scale(1.5);
+  mask-image: radial-gradient(ellipse at center, black, transparent 70%);
+}
+
+.site-background::after {
+  inset: -12%;
+  background: radial-gradient(ellipse at 70% 30%, rgb(48 214 174 / 8%), transparent 36%), radial-gradient(ellipse at 25% 70%, rgb(56 133 205 / 9%), transparent 40%);
+  mask-image: none;
+  animation: ambient-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift {
+  to {
+    transform: translate3d(4%, -3%, 0);
+  }
+}
+
+.depth-surface {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--surface-lift, 0px));
+  transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+}
+
+.depth-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(350px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgb(119 248 221 / 10%), transparent 70%);
+  opacity: 0;
+  transition: opacity 240ms;
+}
+
+.depth-surface:not(.tech-core) > * {
+  position: relative;
+}
+
+.depth-surface:focus-within::before {
+  opacity: 1;
+}
+
+@media(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .depth-surface:hover {
+    --surface-lift: -4px;
+    border-color: #40776f;
+    box-shadow: 0 24px 52px rgb(0 0 0 / 30%), 0 0 24px rgb(119 248 221 / 5%), inset 0 1px 0 rgb(186 255 242 / 14%);
+  }
+  .depth-surface:hover::before {
+    opacity: 1;
+  }
+  .tech-core.depth-surface:hover {
+    --surface-lift: 0px;
+    box-shadow: none;
+  }
+}
+
+.ui-panel, .poster, .year-card-2025, .event_card.wrap {
+  background: linear-gradient(145deg, rgb(22 43 54 / 94%), rgb(8 20 29 / 97%));
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-panel);
+}
+
+.ui-button {
+  border-radius: 10px;
+  background: linear-gradient(145deg, #1b3540, #0c1d27);
+  box-shadow: inset 0 1px 0 rgb(194 255 244 / 10%), 0 4px 12px rgb(0 0 0 / 16%);
+  transition: transform 160ms, background 160ms, border-color 160ms, box-shadow 160ms;
+}
+
+.ui-button-primary, .explore-button {
+  background: linear-gradient(135deg, #4a3566, #2c2043);
+  border-color: #6c508a;
+  color: #d2c7e3;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), 0 3px 0 #211831, 0 8px 24px rgb(98 242 210 / 12%);
+}
+
+.ui-button-primary:hover, .explore-button:hover {
+  background: linear-gradient(135deg, #594173, #3b2955);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), 0 3px 0 #211831, 0 8px 30px rgb(98 242 210 / 20%);
+}
+
+.ui-button:active, .explore-button:active {
+  transform: translateY(2px);
+}
+
+.ui-button:disabled {
+  transform: none;
+  box-shadow: none;
+}
+
+.site-header {
+  inset: 14px 24px auto;
+  height: 68px;
+  padding-inline: 16px;
+}
+
+.site-header .navbar-background {
+  background: linear-gradient(110deg, rgb(18 37 46 / 94%), rgb(5 17 25 / 94%));
+  border: 1px solid #26424b;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(184 255 238 / 6%);
+}
+
+.site-header .logo img {
+  width: 50px;
+  height: 50px;
+  filter: drop-shadow(0 0 8px rgb(119 248 221 / 12%));
+}
+
+.site-header nav ul li a {
+  font-size: .7rem;
+  letter-spacing: .07em;
+}
+
+.site-header nav ul li a:hover, .site-header nav ul li a.active {
+  background: rgb(119 248 221 / 8%);
+  color: var(--color-accent);
+  border-color: rgb(119 248 221 / 18%);
+}
+
+.site-header nav ul li a[href="/register"] {
+  background: linear-gradient(135deg, #4a3566, #2c2043);
+  color: #d2c7e3;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%), 0 3px 0 #211831;
+  border-color: #6c508a;
+}
+
+.section-kicker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: var(--color-accent);
+  font-size: .64rem;
+  font-weight: 500;
+  letter-spacing: .12em;
+}
+
+.section-kicker svg:last-child {
+  margin-left: auto;
+}
+
+.about-intro {
+  max-width: 960px;
+}
+
+.about-intro h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.about-intro .theme-content {
+  max-width: 780px;
+}
+
+.home-page .about-container {
+  padding-top: 48px;
+}
+
+.brochure-title {
+  text-align: left;
+  padding-left: 18px;
+  border-left: 2px solid var(--color-accent);
+}
+
+.brochure-toolbar {
+  background: rgb(8 23 32 / 80%);
+}
+
+.edition-topbar-row {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.edition-title-badge, .year-selection-title {
+  color: #b3accb;
+  text-shadow: 0 0 24px rgb(119 248 221 / 8%);
+}
+
+.tab-button, .mode-switch-btn {
+  background: linear-gradient(145deg, #112a35, #081720);
+  box-shadow: inset 0 1px 0 rgb(181 255 239 / 6%);
+}
+
+.tab-button.active, .mode-switch-btn.active {
+  background: linear-gradient(135deg, #4a3566, #2c2043);
+  color: #d2c7e3;
+  border-color: #6c508a;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 3px 0 #211831;
+}
+
+.poster {
+  border-radius: 14px;
+}
+
+.poster h3 {
+  letter-spacing: .025em;
+}
+
+.poster-view {
+  background: linear-gradient(135deg, #4a3566, #2c2043);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+}
+
+.team-card {
+  border-radius: 16px;
+}
+
+.team-card img {
+  filter: saturate(.85);
+  transition: filter 240ms;
+}
+
+.team-card:hover img {
+  filter: saturate(1);
+}
+
+.team-card .team-role {
+  color: #8ed8ce;
+  font-size: .8rem;
+}
+
+.year-number-big {
+  color: #a590c4;
+  text-shadow: 0 6px 0 rgb(65 143 135 / 15%);
+}
+
+.year-highlight-pill {
+  background: rgb(5 18 25 / 50%);
+}
+
+.registration-page .ui-panel {
+  position: relative;
+  border-top-color: #397567;
+}
+
+.registration-page h2 {
+  color: #b3accb;
+}
+
+.ui-input {
+  background: #07151e;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 20%);
+}
+
+.ui-input:focus {
+  box-shadow: 0 0 0 2px rgb(119 248 221 / 14%), inset 0 2px 6px rgb(0 0 0 / 20%);
+}
+
+.event-choice-selected {
+  background: linear-gradient(135deg, #4a3566, #2c2043);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 3px 0 #211831;
+}
+
+.coming-soon-panel {
+  position: relative;
+  border-top-color: #397567;
+}
+
+.footer {
+  margin-top: 24px;
+  background: linear-gradient(to bottom, transparent, rgb(7 22 29 / 80%));
+}
+
+@media(max-width: 1023px) {
+  .site-header {
+    inset: 10px 12px auto;
+    height: 64px;
+    padding-inline: 12px;
+  }
+  .site-header nav ul.open {
+    top: calc(100% + 8px);
+    width: 100%;
+    background: #0a1c26;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: 0 16px 32px rgb(0 0 0 / 30%);
+  }
+  .site-header nav ul li a {
+    font-size: .8rem;
+  }
+}
+
+@media(prefers-reduced-motion: reduce), (pointer: coarse) {
+  .depth-surface {
+    transform: none;
+  }
+  .site-background::after {
+    animation: none;
+  }
+}
+
+.site-background { background: radial-gradient(ellipse at 76% 18%, #291b3b66, transparent 42%), radial-gradient(ellipse at 3% 62%, #15335744, transparent 46%), #060b14; }
+.site-background::before { background-image: linear-gradient(#6473a314 1px, transparent 1px), linear-gradient(90deg, #6473a314 1px, transparent 1px); }
+.site-background::after { background: radial-gradient(ellipse at 70% 30%, #73469e10, transparent 36%), radial-gradient(ellipse at 25% 70%, #385a8a14, transparent 40%); }
+.site-header .navbar-background { background: linear-gradient(110deg, #15172bf5, #090f1bf5); border-color: #383149; }
+.tab-button, .mode-switch-btn { background: linear-gradient(145deg, #1c2235, #101725); }

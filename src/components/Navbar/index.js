@@ -23,13 +23,13 @@ const rightNavigation = [...commonRightNavigation, ...guestNavigation];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 725);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 1023);
 
   const location = useLocation();
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 725;
+      const mobile = window.innerWidth <= 1023;
       setIsMobileView(mobile);
       if (!mobile) setMenuOpen(false);
     };
@@ -74,7 +74,7 @@ export default function Navbar() {
       {!menuOpen ? (
         <div className="logo">
           <Link to="./" onClick={closeMenu}>
-            <img src={chota_logo} alt="logo1" />
+            <img src={chota_logo} alt="Technozion home" />
           </Link>
         </div>
       ) : null}

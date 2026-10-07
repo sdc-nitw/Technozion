@@ -1,16 +1,18 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Hero from "./Hero";
-import { About } from "./About";
-import Footer from './Footer/footer';
+import Footer from "./Footer/footer";
+import { fetchEvents } from "./Events/eventsData";
+import FestivalStatement from "./Experience/FestivalStatement";
+import PinnedEventShowcase from "./Experience/PinnedEventShowcase";
+import FestivalClosing from "./Experience/FestivalClosing";
+import "./Experience/experience.css";
 
-const Home = (props) => {
-    return (
-        <>
-            <Hero />
-            <About />
-            <Footer />
-        </>
-    )
+export default function Home() {
+  const [events, setEvents] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    fetchEvents().then(data => { if (mounted) setEvents(data); }).catch(() => { if (mounted) setEvents([]); });
+    return () => { mounted = false; };
+  }, []);
+  return <main className="home-page festival-home"><Hero /><FestivalStatement events={events} /><PinnedEventShowcase events={events} /><FestivalClosing /><Footer /></main>;
 }
-
-export default Home;

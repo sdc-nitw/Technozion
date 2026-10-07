@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import './team.css'; 
-import { WebCanvas } from "../bg_animation/bg_animate";
 import Teams from './Teams.png';
 import TeamCrad from "./TeamCrad";
 // Web Team: 5 cards per row on large screens, a short last row is centered.
@@ -28,7 +27,7 @@ export const TeamContent = () => {
     }, []);
 
   return (
-    <div className="list">
+    <div className="team-list">
       <section className="flex flex-col items-center justify-center mb-10">
         <h1 className="lg:text-5xl sm:text-4xl text-3xl uppercase font-bold">Chief Patron</h1>
         {data?.chief_patrons?.map((member, index) => (
@@ -89,10 +88,7 @@ export const TeamContent = () => {
 export const Team = () => {
   return (
     <div className="Teams">
-      <div className="web-canvas">
-        <WebCanvas />
-      </div>
-      <img src={Teams} alt="teams" className='mainteams lg:mt-36 mt-24 lg:scale-100 scale-90 sm:mt-28'/>
+      <img src={Teams} alt="teams" className='mainteams'/>
       <TeamContent />
     </div>
   );
