@@ -45,7 +45,7 @@ test("registration forwards NITW roll and all member identities and shows server
   ];
   const participants = [
     { name: "Lead", participantId: "00123456", rollNumber: "00123456", studentType: "nitw" },
-    { name: "External Member", participantId: "26TZ0123456789ABCDEF", studentType: "external", rollNumber: null },
+    { name: "External Member", participantId: "26TZA7K2", studentType: "external", rollNumber: null },
   ];
   global.fetch
     .mockResolvedValueOnce({ ok: true, json: async () => ({ secure_url: "https://example.com/test-id.png" }) })
@@ -65,4 +65,42 @@ test("missing NITW roll is rejected before uploads or registration requests", as
   await mountSubmit({ email: "test@nitw.ac.in" });
   expect(global.fetch).not.toHaveBeenCalled();
   expect(mockNotify).toHaveBeenCalledWith("Please enter your NITW roll number.", { variant: "error" });
+});
+
+const nitwRegistration = () => ({
+  name: "Lead", email: "test@nitw.ac.in", rollNumber: "00123456", password: "test-password",
+  registrationType: "team", teamMembers: [{ name: "Member", studentType: "external" }],
+  idDocument: new File(["test fixture"], "id.png", { type: "image/png" }),
+});
+
+test("upload connection failures identify the document rather than the registration service", async () => {
+  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    global.fetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await mountSubmit(nitwRegistration());
+    expect(mockNotify).toHaveBeenLastCalledWith("Could not upload your id document. Check your connection and try again.", { variant: "error" });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  } finally { log.mockRestore(); }
+});
+
+test.each([500, 200])("non-JSON registration response (%i) shows a specific error without claiming success", async status => {
+  global.fetch
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ secure_url: "https://example.com/id.png" }) })
+    .mockResolvedValueOnce({ ok: status === 200, status, json: async () => { throw new SyntaxError("Unexpected token <"); } });
+  await mountSubmit(nitwRegistration());
+  expect(mockNotify.mock.calls.at(-1)[0]).toContain(status === 200 ? "Check whether your account was created" : "invalid response (500)");
+  expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test("registration connection errors are distinguished from successful document uploads", async () => {
+  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    global.fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ secure_url: "https://example.com/id.png" }) })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await mountSubmit(nitwRegistration());
+    expect(mockNotify).toHaveBeenLastCalledWith("Could not reach the registration service. Check that the backend is running and try again.", { variant: "error" });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  } finally { log.mockRestore(); }
 });

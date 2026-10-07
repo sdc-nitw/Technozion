@@ -59,7 +59,7 @@
 
 .hero-display {
   position: absolute;
-  z-index: 4;
+  z-index: 1;
   left: 5vw;
   bottom: 270px;
   width: 58%;

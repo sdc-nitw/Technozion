@@ -5,6 +5,7 @@ import { Loader } from "../Loader/index.js";
 import "../event_scroll/index.css";
 import imgsrc from "../event_scroll/tzcomingsoon.png";
 import { legacyToFlat } from "../utils/eventShape";
+import { orderEvents } from "../Events/eventOrder";
 
 const TABS = [
   { key: "clubevents", label: "CLUB" },
@@ -74,7 +75,9 @@ export const EventsBrowser = () => {
 
         const result = await response.json();
         if (!isMounted) return;
-        setData(result);
+        setData(selectedTab === "societies"
+          ? orderEvents(result.map(society => ({ ...society, events: orderEvents(society.events || []) })))
+          : orderEvents(result.map(item => ({ ...item, club: item.club || item.name }))));
       } catch (err) {
         console.error("Error loading data:", err);
         if (!isMounted) return;

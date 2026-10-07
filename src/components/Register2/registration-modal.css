@@ -1,0 +1,61 @@
+.registration-launch { max-width: 900px; margin: 8vh auto; text-align: center; }
+.registration-launch h1 { font-family: var(--font-heading); font-size: clamp(3.6rem, 9vw, 8rem); line-height: .95; letter-spacing: -.04em; margin: 28px 0; }
+.registration-launch h1 span { color: var(--color-accent); }
+.registration-modal { padding: 0; width: min(860px, calc(100% - 40px)); max-width: none; max-height: min(880px, calc(100dvh - 48px)); margin: auto; border: 1px solid #66537e; border-radius: 22px; color: var(--color-text); background: #101221; box-shadow: 0 32px 120px #000a; overflow: hidden; }
+.registration-modal::backdrop { background: rgb(3 6 15 / 86%); }
+.registration-modal form { display: flex; flex-direction: column; max-height: min(880px, calc(100dvh - 48px)); }
+.registration-modal-header { position: relative; flex-shrink: 0; padding: 26px 36px 22px; background: radial-gradient(ellipse at top right, #3c255650, transparent 70%), #141525; border-bottom: 1px solid #383149; }
+.registration-modal-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: .9rem; letter-spacing: .09em; }
+.registration-modal-brand small { display: block; font-size: .6rem; font-weight: 400; color: #a69ab9; margin-top: 4px; }
+.registration-brand-mark { display: grid; place-items: center; width: 38px; height: 38px; color: #b8a1d8; border: 1px solid #7b6199; border-radius: 10px; font-family: var(--font-heading); }
+.registration-close { position: absolute; right: 24px; top: 22px; width: 40px; height: 40px; border: 1px solid #4a3c60; border-radius: 50%; background: #211b30; color: #d6c6eb; font-size: 26px; line-height: 1; }
+.registration-close:hover { background: #372746; }
+.registration-progress { display: flex; gap: 7px; margin: 24px 0 18px; }
+.registration-progress span { height: 3px; flex: 1; border-radius: 2px; background: #333044; }
+.registration-progress span[data-complete="true"] { background: #617b93; }
+.registration-progress span[data-current="true"] { background: #b293d6; }
+.registration-step-kicker { font-size: .62rem; color: #b59acb; letter-spacing: .16em; margin-bottom: 10px; }
+.registration-modal .registration-modal-header h2 { font-family: var(--font-heading); font-size: clamp(2rem, 4vw, 3rem); line-height: 1; letter-spacing: -.03em; margin: 0 0 10px; outline: none; }
+.registration-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px 36px; scrollbar-width: thin; scrollbar-color: #66537e #101221; }
+.registration-step:not([hidden]) { animation: registration-enter 180ms ease-out; }
+.registration-step[hidden] { display: none !important; }
+.registration-step h2 { font-size: 1.1rem; }
+.registration-modal .ui-input { background: #191b2b; border-color: #3d354f; color: #e7dfef; font-size: .9rem; }
+.registration-modal .ui-input:focus { border-color: #b293d6; box-shadow: 0 0 0 2px #b293d61c; }
+.registration-modal input::placeholder { color: #8f869e; }
+.registration-modal .text-ui-muted { color: #a59db3; }
+.registration-modal .text-ui-accent { color: #bda3dc; }
+.registration-modal .event-choice-selected { background: #4b345e; border-color: #b293d6; }
+.registration-modal .event-choice-selected span { color: #f2e8ff; }
+.registration-modal .event-choice { text-align: left; }
+.registration-modal-footer { flex-shrink: 0; padding: 18px 36px; border-top: 1px solid #383149; background: #141525; }
+.registration-footer-actions { display: flex; justify-content: space-between; gap: 16px; }
+.registration-modal .ui-button { min-height: 46px; padding: 12px 24px; border: 1px solid #4a3c60; border-radius: 10px; color: #c6bad6; background: #211b30; font-size: .85rem; }
+.registration-modal .ui-button-primary { background: #694788; border-color: #9875b7; color: #fff; box-shadow: inset 0 1px 0 #cdb3e526; }
+.registration-modal .ui-button-primary:hover { background: #7c559f; }
+.registration-modal button:focus-visible, .registration-modal a:focus-visible { outline: 2px solid #c8b4e1; outline-offset: 3px; }
+.registration-modal button:disabled { opacity: .45; cursor: not-allowed; }
+.registration-help { font-size: .66rem; color: #9b91ac; text-align: center; margin-top: 14px; }
+.registration-help a { color: #c7b1df; }
+.registration-error { font-size: .8rem; color: #f5a1b4; margin-bottom: 14px; }
+.registration-text-button, .registration-review-label button { color: #c7b1df; text-decoration: underline; text-underline-offset: 4px; font-size: .8rem; }
+.registration-review-block { border: 1px solid #3d354f; background: #191b2b; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.registration-review-label { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.registration-review-label h3 { font-size: .9rem; color: #bda3dc; }
+.registration-review-block p { font-size: .85rem; margin: 8px 0; overflow-wrap: anywhere; }
+.registration-review-total { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #3d354f; }
+.registration-review-total strong { font-size: 1.35rem; color: #c7b1df; }
+.registration-exempt { color: #b5d6bd; }
+@keyframes registration-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 600px) {
+  .registration-modal { width: calc(100% - 16px); max-height: calc(100dvh - 16px); border-radius: 16px; }
+  .registration-modal form { max-height: calc(100dvh - 16px); }
+  .registration-modal-header { padding: 20px 20px 18px; }
+  .registration-modal .registration-modal-header h2 { font-size: 2rem; }
+  .registration-modal-body { padding: 22px 20px; }
+  .registration-modal-footer { padding: 16px 20px max(16px, env(safe-area-inset-bottom)); }
+  .registration-close { top: 18px; right: 16px; }
+  .registration-modal .ui-button { padding-inline: 18px; }
+  .registration-modal .grid.sm\:grid-cols-3 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .registration-step:not([hidden]) { animation: none; } }
