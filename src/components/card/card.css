@@ -1,311 +1,142 @@
-@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+/* Event detail layout stays scoped to its own page. */
 
-/* Global reset scoped to the card component */
-.event_card,
-.event_card * {
-  box-sizing: border-box;
-  font-optical-sizing: auto;
-  font-style: normal;
-  color: #16f6f3 !important;
-}
-
-/* Ensure Back button and its child elements keep high-contrast dark text */
-.back-button,
-.back-button * {
-  color: #031318 !important;
-}
-
-/* Outer Backdrop Container */
 .card-container {
-  min-height: 100vh;
+  min-height: 100svh;
   width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 3rem 1.5rem;
+  align-items: flex-start;
+  padding: calc(var(--header-height) + 32px) 24px 40px;
   position: relative;
-  box-sizing: border-box;
-  cursor: pointer;
-  z-index: 10;
 }
 
-/* Background Canvas */
-.web-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
+.event_card.wrap {
   width: 100%;
-  z-index: 1;
-  pointer-events: none; /* Allows clicks to pass through to card-container */
-}
-
-/* Main Card Modal */
-.event_card {
-  cursor: default;
-  margin: 0;
-  padding: 0;
-  position: relative;
-  z-index: 5;
-}
-
-.wrap {
-  display: flex;
-  flex-direction: column;
-  width: 94vw;
-  max-width: 1350px;
-  height: 82vh;
+  max-width: var(--page-width);
+  height: max(560px, calc(100svh - var(--header-height) - 72px));
   max-height: 840px;
-  min-height: 560px;
-  border: 2.5px solid #16f6f3;
-  border-radius: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   overflow: hidden;
-  background-color: rgba(5, 10, 16, 0.88);
-  box-shadow: 0px 0px 25px rgba(22, 246, 243, 0.6),
-    0px 0px 50px rgba(22, 246, 243, 0.35);
-  transition: box-shadow 0.3s ease-in-out;
 }
 
-.wrap.active {
-  width: 94vw;
-  max-width: 1350px;
-}
-
-/* Inner Glassy Text Wrapper */
-.text {
-  width: 100%;
-  height: 100%;
+.event_card .text {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.45);
-  box-shadow: inset 1px 1px 20px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  position: relative;
-  z-index: 2;
+  height: 100%;
+  min-height: 0;
 }
 
-/* Card Header Navigation */
-.cardnav {
-  width: 100%;
+.event_card .cardnav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
   flex-shrink: 0;
-  background: rgba(0, 5, 12, 0.7);
-  border-bottom: 1px solid rgba(22, 246, 243, 0.2);
-  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* The Single Back Button */
-.back-button {
-  background: linear-gradient(135deg, #16f6f3 0%, #00b3ff 100%);
-  border: none;
-  color: #031318 !important;
-  padding: 0.6rem 1.35rem;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
-  font-size: 0.95rem;
-  min-width: 96px;
-  box-shadow: 0 4px 18px rgba(22, 246, 243, 0.4);
-  font-family: "Raleway", sans-serif;
+.event_card .back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+  padding: 10px 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: #092126;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.back-button:hover {
-  filter: brightness(1.12);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(22, 246, 243, 0.6);
+.event_card .back-button:hover {
+  background: #90e9e6;
 }
 
-.back-button:active {
-  transform: translateY(0);
-}
-
-/* Three-Section Grid Container */
-.card-sections-container {
+.event_card .card-sections-container {
   display: grid;
   grid-template-columns: 28% 40% 32%;
-  width: 100%;
-  height: calc(100% - 62px);
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
-/* Individual Sections */
-.card-section {
-  padding: 1.5rem;
-  box-sizing: border-box;
-  height: 100%;
+.event_card .card-section {
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
 }
 
-/* Section 1: Poster Image */
-.card-section-image {
+.event_card .card-section-image {
   display: flex;
-  justify-content: center;
   align-items: center;
-  border-right: 1px solid rgba(22, 246, 243, 0.15);
-  overflow: hidden;
+  justify-content: center;
+  border-right: 1px solid var(--color-border);
 }
 
-.poster-frame {
+.event_card .poster-frame {
   width: 100%;
   max-width: 310px;
-  max-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.poster-frame img,
-.poster-frame .cnt-logo {
+.event_card .poster-frame img {
+  max-width: 100%;
   max-height: 62vh;
-  width: auto;
-  border-radius: 0.85rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(22, 246, 243, 0.25);
-  border: 1px solid rgba(22, 246, 243, 0.3);
-  object-fit: cover;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
-/* Section 2: Overview */
-.card-section-overview {
-  overflow-y: auto;
-  border-right: 1px solid rgba(22, 246, 243, 0.15);
-  display: flex;
-  flex-direction: column;
+.event_card .card-section-overview {
+  border-right: 1px solid var(--color-border);
 }
 
-/* Section 3: Rules */
-.card-section-rules {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+.event_card .rule-item, .event_card .contact-card {
+  border-color: var(--color-border);
+  background: var(--color-input);
 }
 
-.rule-item {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.rule-item:hover {
-  background-color: rgba(22, 246, 243, 0.08);
-  border-color: rgba(22, 246, 243, 0.4);
-}
-
-.contact-card {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.contact-card:hover {
-  background-color: rgba(22, 246, 243, 0.08);
-  border-color: rgba(22, 246, 243, 0.4);
-}
-
-/* Custom Cyan Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(22, 246, 243, 0.4);
-  border-radius: 999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(22, 246, 243, 0.8);
-}
-
-/* Responsive Styles */
-@media (max-width: 1024px) {
-  .wrap,
-  .wrap.active {
-    width: 95vw;
-    height: 88vh;
-    max-height: 900px;
-  }
-
-  .card-sections-container {
-    grid-template-columns: 35% 65%;
-    overflow-y: auto;
-  }
-
-  .card-section-image {
-    border-right: 1px solid rgba(22, 246, 243, 0.15);
-    border-bottom: none;
-  }
-
-  .card-section-overview {
-    border-right: none;
-    border-bottom: 1px solid rgba(22, 246, 243, 0.15);
+@media(max-width: 1023px) {
+  .event_card.wrap {
     height: auto;
-    overflow-y: visible;
-  }
-
-  .card-section-rules {
-    grid-column: span 2;
-    height: auto;
-    overflow-y: visible;
-  }
-}
-
-@media (max-width: 768px) {
-  .card-container {
-    padding: 5rem 0.75rem 2rem 0.75rem;
-    align-items: flex-start;
-  }
-
-  .wrap,
-  .wrap.active {
-    width: 100%;
-    height: auto;
-    min-height: auto;
     max-height: none;
   }
-
-  .text {
-    height: auto;
+  .event_card .card-sections-container {
+    grid-template-columns: 35% 65%;
   }
-
-  .card-sections-container {
-    display: flex;
-    flex-direction: column;
-    height: auto;
+  .event_card .card-section {
     overflow: visible;
   }
-
-  .card-section {
-    padding: 1.2rem 1rem;
-    height: auto;
+  .event_card .card-section-overview {
+    border-right: 0;
   }
-
-  .card-section-image {
-    border-right: none;
-    border-bottom: 1px solid rgba(22, 246, 243, 0.15);
+  .event_card .card-section-rules {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--color-border);
   }
+}
 
-  .poster-frame {
+@media(max-width: 767px) {
+  .card-container {
+    padding: calc(var(--header-height) + 24px) 16px 32px;
+  }
+  .event_card .card-sections-container {
+    display: flex;
+    flex-direction: column;
+  }
+  .event_card .card-section {
+    padding: 20px;
+  }
+  .event_card .card-section-image {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .event_card .poster-frame {
     max-width: 240px;
-  }
-
-  .card-section-overview {
-    border-right: none;
-    border-bottom: 1px solid rgba(22, 246, 243, 0.15);
-    overflow-y: visible;
-  }
-
-  .card-section-rules {
-    overflow-y: visible;
-  }
-
-  .cardnav button {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    min-width: 80px;
   }
 }

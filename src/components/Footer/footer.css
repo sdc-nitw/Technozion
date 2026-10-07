@@ -1,37 +1,22 @@
 .footer {
-    text-align: center;
-    padding: 1rem;
-    background-color: transparent; /* Transparent background */
-    color: #16f6f3; /* Change entire text color to #16f6f3 */
-    position: fixed;
-    width: 100%;
-    bottom: 0;
-    left: 0;
-    font-size: 1.2rem;
-    z-index: 10; /* Ensure the footer stays on top of other elements */
+  position: relative;
+  width: 100%;
+  padding: 28px 16px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: .875rem;
 }
 
-.footer p {
-    color:#16f6f3;
+.footer p + p {
+  margin-top: 8px;
+  font-size: .75rem;
 }
 
-.heart {
-    color: red; /* Color for the heart emoji */
+.footer a {
+  color: var(--color-text);
 }
 
-.bold-text {
-    font-weight: bold; /* Make the text bold */   
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .footer {
-        font-size: 1rem; /* Adjust font size for medium screens */
-    }
-}
-
-@media (max-width: 480px) {
-    .footer {
-        font-size: 0.9rem; /* Adjust font size for small screens */
-    }
+.footer a:hover {
+  color: var(--color-accent);
 }

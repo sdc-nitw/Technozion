@@ -5,6 +5,9 @@ import Navbar from './components/Navbar';
 import AuthProvider from './Context/AuthManager';
 import SnackbarProvider from './Context/SnackbarProvider';
 import RoutesManager from './Context/RoutesManager';
+import { SiteBackground } from './components/bg_animation/bg_animate';
+import './theme.css';
+import './components/Experience/experience.css';
 
 const App = () => {
     const [loading, setLoading] = useState(true);
@@ -27,6 +30,7 @@ const App = () => {
 
     return (
         <>
+            <SiteBackground />
             {loading ? (
                 <div className={`loader ${fadeOut ? 'fade-out' : ''}`}>
                     <Loader />

@@ -1,75 +1,33 @@
-/* Loader.css */
 .loader {
-    position: fixed; /* Cover the entire viewport */
-    top: 0;
-    left: 0;
-    width: 100vw; /* Full width */
-    height: 100vh; /* Full height */
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black background */
-    display: flex; /* Use flexbox to center content */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    z-index: 9999; /* Ensure it appears above other content */
-    opacity: 1; /* Fully visible initially */
-    pointer-events: none; /* Prevent interaction while fading */
-    transition: opacity 3s ease-in-out; /* Smoother fade out using opacity */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  transition: opacity 250ms ease;
 }
 
 .loader.fade-out {
-    opacity: 0; /* Fade out to transparent */
+  opacity: 0;
+  pointer-events: none;
 }
 
-/* Keyframes for fading the background smoothly */
-@keyframes fade-out-bg {
-    0% {
-        background-color: rgba(0, 0, 0, 0.8);
-    }
-    100% {
-        background-color: rgba(0, 0, 0, 0.0);
-    }
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: .875rem;
 }
 
-/* Static image */
-.loader .static-image {
-    position: absolute;
-    width: 400px;
-    height: 400px;
-    z-index: 1;
-    transition: transform 3s ease-in-out;
-}
-
-/* Rotating image */
-.loader .rotating {
-    position: absolute;
-    width: 600px;
-    height: 600px;
-    z-index: 0;
-    animation: rotate 2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-}
-
-.loader .clockwise {
-    animation-direction: normal; /* Clockwise rotation */
-}
-
-.loader .anticlockwise {
-    animation-direction: reverse; /* Anticlockwise rotation */
-}
-
-/* Smooth rotation keyframes */
-@keyframes rotate {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Media query for small screens */
-@media (max-width: 600px) {
-    .loader .static-image,
-    .loader .rotating {
-        width: 250px;
-        height: 250px;
-    }
+.loading-state img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }

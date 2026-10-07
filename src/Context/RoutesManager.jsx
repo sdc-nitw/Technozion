@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { gsap, ScrollTrigger } from '../animation/gsap';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { About } from '../components/About';
 import EventsPage from '../components/Events/EventsPage';
@@ -12,10 +13,39 @@ import RegistrationReceipt from '../components/Register2/RegistrationReceipt.jsx
 import VerifyEmail from "../components/Login/VerifyEmail";
 
 const RoutesManager = () => {
-	const { pathname } = useLocation();
+	const { pathname, hash } = useLocation();
 	useEffect(() => {
-		window.scrollTo(0, 0);
-	}, [pathname]);
+    if (!hash) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); return; }
+    let frame;
+    let scrollTween;
+    let disposed = false;
+    let observer;
+    let targetId;
+    try { targetId = decodeURIComponent(hash.slice(1)); } catch { return; }
+    const align = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const target = document.getElementById(targetId);
+        if (!disposed && target && !target.closest('[aria-busy="true"]')) {
+          observer?.disconnect();
+          frame = requestAnimationFrame(() => {
+            if (disposed) return;
+            ScrollTrigger.refresh();
+            const top = target.getBoundingClientRect().top + window.scrollY - 100;
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+              window.scrollTo({ top, behavior: "instant" });
+            } else {
+              scrollTween = gsap.to(window, { scrollTo: { y: top, autoKill: true }, duration: .7, ease: "power2.inOut", overwrite: "auto" });
+            }
+          });
+        }
+      });
+    };
+    observer = new MutationObserver(align);
+    observer.observe(document.getElementById("root"), { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
+    align();
+    return () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); scrollTween?.kill(); };
+  }, [pathname, hash]);
 
 	return (
 		<Routes>
