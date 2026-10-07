@@ -100,7 +100,7 @@ export default function Navbar() {
             </>
           )}
         </button>
-        <ul id="primary-navigation" className={menuOpen ? "open" : ""}>{listItems}</ul>
+        <ul id="primary-navigation" data-lenis-prevent className={menuOpen ? "open" : ""}>{listItems}</ul>
       </nav>
 
       {!isMobileView && (

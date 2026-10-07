@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Poster from "../event_scroll/poster";
-import {Loader} from "../Loader/index"
-import { fetchEvents } from "./eventsData";
+import useEvents from "./useEvents";
+import EventsLoading from "./EventsLoading";
+import { compareEvents } from "./eventOrder";
 import { gsap, useGSAP, motionConditions, observeSceneMeasurements } from "../../animation/gsap";
 import "../Experience/experience.css";
 import "../PastEvents/PastEvents.css";
@@ -15,33 +16,11 @@ const CATEGORY_TABS = [
   { key: "demonstration", label: "DEMONSTRATIONS" },
 ];
 
-const hasPoster = (event) =>
-  typeof event.imgsrc === "string" && event.imgsrc.trim().length > 0;
-
 export const EventsPage = () => {
   const navigate = useNavigate();
   const catalogue = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [events, setEvents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let isMounted = true;
-    fetchEvents()
-      .then((data) => {
-        if (isMounted) setEvents(data);
-      })
-      .catch((err) => {
-        console.error("Error loading events:", err);
-        if (isMounted) setError(err.message || "Failed to load events");
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { events, isLoading } = useEvents();
   const filteredEvents = useMemo(() => events.filter((ev) => {
     if (selectedCategory === "all") return true;
     const typeLower = (ev.eventType || "").toLowerCase();
@@ -58,7 +37,7 @@ export const EventsPage = () => {
       return typeLower.includes("workshop");
     }
     return true;
-  }).sort((a, b) => Number(hasPoster(b)) - Number(hasPoster(a))), [events, selectedCategory]);
+  }).sort(compareEvents), [events, selectedCategory]);
 
   useGSAP(() => {
     if (!catalogue.current) return;
@@ -75,7 +54,7 @@ export const EventsPage = () => {
 
   const eventCount = filteredEvents.length;
   const countLabel =
-    isLoading || error ? "EVENTS" : `${eventCount} ${eventCount === 1 ? "EVENT" : "EVENTS"}`;
+    isLoading ? "EVENTS" : `${eventCount} ${eventCount === 1 ? "EVENT" : "EVENTS"}`;
 
   const handlePosterClick = (item) => {
     navigate("/card", {
@@ -135,11 +114,8 @@ export const EventsPage = () => {
               /></div>
             ))}
           </div>
-          {isLoading && <Loader/>}
-          {!isLoading && error && (
-            <p className="text-center text-red-400 my-8">Error: {error}</p>
-          )}
-          {!isLoading && !error && filteredEvents.length === 0 && (
+          {isLoading && <EventsLoading />}
+          {!isLoading && filteredEvents.length === 0 && (
             <p className="text-center opacity-70 my-8">No events available</p>
           )}
         </div>

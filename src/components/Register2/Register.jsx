@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { fetchEvents } from "../Events/eventsData";
-import { API_URL } from "../../config";
+import useEvents from "../Events/useEvents";
+import EventsLoading from "../Events/EventsLoading";
+import "./registration-modal.css";
 import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
 
@@ -12,7 +13,6 @@ const COMPETITION_FEE = 500; // per-team per-competition event fee
 const MAX_FEE = 2000; // cap if needed
 
 // ─── Static config ────────────────────────────────────────────────────────────
-const BROCHURE_URL = "/brochure.pdf";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -30,15 +30,7 @@ const rollNumberRules = {
 
 export default function Register() {
   // ── Events state ──────────────────────────────────────────────────────────
-  const [allEvents, setAllEvents] = useState([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchEvents()
-      .then((evs) => setAllEvents(evs))
-      .catch(() => setAllEvents([]))
-      .finally(() => setEventsLoading(false));
-  }, []);
+  const { events: allEvents, isLoading: eventsLoading } = useEvents();
 
   // Only show events that are open for registration
   const registrableEvents = useMemo(
@@ -50,9 +42,11 @@ export default function Register() {
   const {
     register,
     handleSubmit,
+    trigger,
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
+    shouldFocusError: false,
     defaultValues: {
       events: [],
       members: Array.from({ length: TEAM_SIZE - 1 }, () => ({ name: "", studentType: "external", rollNumber: "" })),
@@ -102,69 +96,30 @@ export default function Register() {
     return { total: 0, mode: null, competitionCount: 0 };
   }, [selectedEventIds, registrableEvents]);
 
-  // ── OTP State ─────────────────────────────────────────────────────────────
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState("");
-
-  // Reset verification if email changes
-  useEffect(() => {
-    setEmailVerified(false);
-  }, [watchedEmail]);
-
-  const handleSendOtp = async () => {
-    if (!watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)) {
-      alert("Please enter a valid email first.");
-      return;
-    }
-    setOtpSending(true);
-    setOtpError("");
-    try {
-      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: watchedEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to send OTP");
-      setOtpModalOpen(true);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otpCode) return;
-    setOtpError("");
-    try {
-      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: watchedEmail, otp: otpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Invalid OTP");
-      
-      setEmailVerified(true);
-      setOtpModalOpen(false);
-    } catch (err) {
-      setOtpError(err.message);
-    }
-  };
+  // ── Modal state ──────────────────────────────────────────────────────────
+  const [modalOpen, setModalOpen] = useState(true);
+  const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState("");
+  const dialog = useRef(null);
+  const body = useRef(null);
+  const heading = useRef(null);
+  const steps = [
+    { id: 0, label: "Team lead" },
+    { id: 1, label: "Your team" },
+    { id: 2, label: "Your events" },
+    { id: 3, label: "Identity proof" },
+    ...(!isNitw ? [{ id: 4, label: "Payment" }] : []),
+    { id: 5, label: "Review & submit" },
+  ];
+  const currentIndex = steps.findIndex(item => item.id === step);
+  const current = steps[currentIndex] || steps[0];
+  const reviewName = watch("name");
+  const reviewCollege = watch("college");
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const { register: authRegister, loading: authLoading } = useAuth();
   
   const onSubmit = async (data) => {
-    if (!emailVerified) {
-      alert("Please verify your email address before submitting.");
-      return;
-    }
-
     const payload = {
       name: data.name,
       gender: data.gender,
@@ -183,85 +138,79 @@ export default function Register() {
       password: data.password,
     };
 
-    await authRegister(payload);
+    const result = await authRegister(payload);
+    if (result?.ok === false) setStepError(result.message);
   };
+
+  const busy = isSubmitting || authLoading;
+  useEffect(() => {
+    const element = dialog.current;
+    if (modalOpen && !element.open) element.showModal();
+    if (!modalOpen && element.open) element.close();
+    if (!modalOpen) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; };
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    if (body.current) body.current.scrollTop = 0;
+    heading.current?.focus({ preventScroll: true });
+  }, [step, modalOpen]);
+
+  const goTo = target => { setStepError(""); setStep(target); };
+  const nextStep = async () => {
+    if (busy) return;
+    const fields = step === 0
+      ? ["name", "gender", "email", "password", "college", ...(isNitw ? ["rollNumber"] : [])]
+      : step === 1 ? watchedMembers.flatMap((member, index) => [`members.${index}.name`, ...(member.studentType === "nitw" ? [`members.${index}.rollNumber`] : [])])
+      : step === 2 ? ["events"] : step === 3 ? ["collegeId"] : ["paymentScreenshot"];
+    if (!await trigger(fields, { shouldFocus: true })) { setStepError("Check the required details before continuing."); return; }
+    goTo(steps[currentIndex + 1].id);
+  };
+  const onInvalid = invalid => {
+    const target = ["name", "gender", "email", "password", "college", "rollNumber"].some(field => invalid[field]) ? 0 : invalid.members ? 1 : invalid.events ? 2 : invalid.collegeId ? 3 : 4;
+    setStep(target);
+    setStepError("Check the highlighted details before submitting.");
+  };
+  const submitForm = event => {
+    if (busy) { event.preventDefault(); return; }
+    if (step === 5) return handleSubmit(onSubmit, onInvalid)(event);
+    event.preventDefault();
+    nextStep();
+  };
+  const closeModal = () => { if (!busy) setModalOpen(false); };
 
   // ─── UI ───────────────────────────────────────────────────────────────────
   return (
-    <div className="registration-page ui-page text-neutral-100">
-      
-      {/* OTP Modal */}
-      {otpModalOpen && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="ui-panel p-6 w-full max-w-sm ">
-            <h3 className="text-xl font-bold text-white mb-2">Verify Email</h3>
-            <p className="text-xs text-ui-muted mb-6">
-              We sent a 6-digit code to <span className="text-cyan-400 font-sans">{watchedEmail}</span>.
-            </p>
-            <input
-              type="text"
-              maxLength={6}
-              placeholder="Enter 6-digit OTP"
-              className={`${inputCls} text-center tracking-[0.5em] font-sans text-lg`}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value)}
-            />
-            {otpError && <p className="text-red-400 text-xs mt-2 text-center">{otpError}</p>}
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setOtpModalOpen(false)}
-                className="ui-button flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleVerifyOtp}
-                className="ui-button ui-button-primary flex-1"
-              >
-                Verify
-              </button>
+    <main className="registration-page ui-page text-neutral-100">
+      <section className="registration-launch">
+        <h1>YOUR NEXT<br /><span>CHALLENGE.</span></h1>
+        <button type="button" className="ui-button ui-button-primary" onClick={() => setModalOpen(true)}>{step > 0 ? "Continue registration" : "Start registration"} <span aria-hidden="true">↗</span></button>
+      </section>
+
+      <dialog ref={dialog} className="registration-modal" data-lenis-prevent aria-labelledby="registration-dialog-title" onCancel={event => { event.preventDefault(); closeModal(); }}>
+        <form onSubmit={submitForm} noValidate aria-busy={busy}>
+          <header className="registration-modal-header">
+            <div className="registration-modal-brand"><span className="registration-brand-mark">TZ</span><span>TECHNOZION <small>REGISTRATION / 2026</small></span></div>
+            <button type="button" className="registration-close" onClick={closeModal} disabled={busy} aria-label="Close registration">×</button>
+            <div className="registration-progress" aria-label={`Step ${currentIndex + 1} of ${steps.length}`}>
+              {steps.map((item, index) => <span key={item.id} data-complete={index < currentIndex} data-current={index === currentIndex} />)}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Foreground Content ── */}
-      <div className="max-w-4xl mx-auto space-y-8 relative">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white ">
-            Registration
-          </h1>
-          <p className="text-ui-muted text-sm max-w-md mx-auto">
-            Join the biggest technical fest of NIT Warangal.{" "}
-            <a
-              href={BROCHURE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="text-cyan-400 underline underline-offset-4 hover:text-cyan-300 transition-colors"
-            >
-              📄 Review the rulebook &amp; fee guidelines
-            </a>
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            <p className="registration-step-kicker" aria-live="polite">STEP {String(currentIndex + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")}</p>
+            <h2 ref={heading} tabIndex={-1} id="registration-dialog-title">{current.label + "."}</h2>
+          </header>
+          <div className="registration-modal-body" ref={body}>
           {/* Section 1: Team Lead Details */}
-          <div className="ui-panel p-6 sm:p-8  space-y-6">
-            <h2 className="text-lg font-bold tracking-wide text-white border-b border-ui-border pb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
-              Team Lead Details
-            </h2>
-
+          <section hidden={step !== 0} className="registration-step space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className={labelCls}>Full Name</label>
                 <input
-                  placeholder="e.g. Ash Ketchum"
+                  placeholder="Your full name"
                   className={inputCls}
+                  aria-label="Full name"
                   {...register("name", { required: "Lead name is required" })}
                 />
                 {errors.name && (
@@ -273,6 +222,7 @@ export default function Register() {
                 <label className={labelCls}>Gender</label>
                 <select
                   className={`${inputCls} cursor-pointer`}
+                  aria-label="Gender"
                   {...register("gender", { required: "Gender is required" })}
                 >
                   <option value="" className="bg-ui-input text-ui-muted">Select Gender</option>
@@ -290,30 +240,18 @@ export default function Register() {
                 <div className="relative">
                   <input
                     type="email"
-                    placeholder="pikachu@example.com"
-                    className={`${inputCls} pr-24`}
+                    placeholder="you@example.com"
+                    className={inputCls}
+                    aria-label="Email address"
                     {...register("email", {
                       required: "Email is required",
-                      pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
+                      pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" },
+                      setValueAs: value => value.trim(),
                     })}
-                    readOnly={emailVerified}
                   />
-                  {emailVerified ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 text-xs font-bold tracking-wide flex items-center gap-1 bg-ui-surface pl-2">
-                      ✓ VERIFIED
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={otpSending || !watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-ui-input hover:bg-ui-surface text-ui-accent text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {otpSending ? "SENDING..." : "VERIFY"}
-                    </button>
-                  )}
                 </div>
-                {errors.email && !emailVerified && (
+                <p className="text-xs text-ui-muted mt-2">{isNitw ? "NITW student · payment exempt." : "NITW students: use your institute email."}</p>
+                {errors.email && (
                   <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
                 )}
               </div>
@@ -322,12 +260,9 @@ export default function Register() {
                 <div>
                   <label htmlFor="leader-roll-number" className={labelCls}>NITW Roll Number</label>
                   <input id="leader-roll-number" type="text" autoComplete="off" placeholder="Enter your NITW roll number" className={inputCls} {...register("rollNumber", rollNumberRules)} />
-                  <p className="text-xs text-ui-muted mt-2">Your roll number will be your participant ID.</p>
                   {errors.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.rollNumber.message}</p>}
                 </div>
-              ) : (
-                <p className="text-xs text-cyan-300 sm:col-span-2">Your unique 26TZ… participant ID will be assigned after registration.</p>
-              )}
+              ) : null}
 
               <div>
                 <label className={labelCls}>Password</label>
@@ -335,6 +270,7 @@ export default function Register() {
                   type="password"
                   placeholder="Minimum 8 characters"
                   className={inputCls}
+                  aria-label="Password"
                   {...register("password", { 
                     required: "Password is required",
                     minLength: { value: 8, message: "Must be at least 8 characters" }
@@ -350,6 +286,7 @@ export default function Register() {
                 <input
                   placeholder="e.g. NIT Warangal"
                   className={inputCls}
+                  aria-label="College / University"
                   {...register("college", { required: "College name is required" })}
                 />
                 {errors.college && (
@@ -358,23 +295,35 @@ export default function Register() {
               </div>
             </div>
 
+          </section>
+
+          <section hidden={step !== 3} className="registration-step space-y-6">
+            <h2>Upload your {idLabel.toLowerCase()}</h2>
+            <p className="text-sm text-ui-muted">Use a clear PDF, JPG or PNG. Maximum size: 5 MB.</p>
             <div>
-              <label className={labelCls}>Upload {idLabel} (PDF / JPG / PNG)</label>
+              <label htmlFor="college-id" className={labelCls}>Upload {idLabel} (PDF / JPG / PNG)</label>
               <label className="border border-dashed border-ui-border hover:border-ui-accent rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-ui-input hover:bg-ui-input transition-all">
                 <input
+                  id="college-id"
                   type="file"
-                  accept="image/*,application/pdf"
+                  accept="image/jpeg,image/png,application/pdf"
                   className="sr-only"
-                  {...register("collegeId", { required: "College ID proof is required" })}
+                  {...register("collegeId", {
+                    required: "ID proof is required",
+                    validate: {
+                      size: files => !files?.[0] || files[0].size <= 5 * 1024 * 1024 || "ID document must be 5 MB or smaller",
+                      type: files => !files?.[0] || ["image/jpeg", "image/png", "application/pdf"].includes(files[0].type) || "Upload a PDF, JPG or PNG",
+                    },
+                  })}
                 />
                 <svg className="w-8 h-8 text-ui-muted mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <span className="text-sm font-medium text-ui-muted">
                   {collegeIdFile?.[0]?.name ? (
-                    <span className="text-cyan-400 font-sans">{collegeIdFile[0].name}</span>
+                    <span className="text-ui-accent font-sans">{collegeIdFile[0].name}</span>
                   ) : (
-                    "Click to select a file or drag it here"
+                    "Choose your ID document"
                   )}
                 </span>
                 <span className="text-xs text-ui-muted mt-1">Maximum size: 5 MB</span>
@@ -383,17 +332,13 @@ export default function Register() {
                 <p className="text-red-400 text-xs mt-1.5">{errors.collegeId.message}</p>
               )}
             </div>
-          </div>
+          </section>
 
           {/* Section 2: Team Members */}
-          <div className="p-6 sm:p-8 rounded-xl bg-ui-surface border border-ui-border  space-y-4">
+          <section hidden={step !== 1} className="registration-step space-y-4">
             <div>
-              <h2 className="text-lg font-bold tracking-wide text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                Team Members ({TEAM_SIZE} Members Total)
-              </h2>
               <p className="text-xs text-ui-muted mt-1">
-                Enter each teammate's name and institution type. NITW students use their roll number as their ID; others receive a unique 26TZ… ID.
+                Four participants, including the team lead.
               </p>
             </div>
 
@@ -423,28 +368,22 @@ export default function Register() {
                       <input id={`member-${i}-roll`} type="text" placeholder="Roll number" className={inputCls} {...register(`members.${i}.rollNumber`, rollNumberRules)} />
                       {errors.members?.[i]?.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.members[i].rollNumber.message}</p>}
                     </div>
-                  ) : <p className="text-xs text-cyan-300 mt-3">A 26TZ… ID will be assigned after registration.</p>}
+                  ) : null}
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Section 3: Select Events */}
-          <div className="space-y-4">
+          <section hidden={step !== 2} className="registration-step space-y-4">
             <div>
-              <h2 className="text-xl font-bold tracking-wide text-neutral-100 flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                Select Participating Events
-              </h2>
               <p className="text-xs text-ui-muted mt-1">
                 Click any event to add or remove it from your registration.
               </p>
             </div>
 
             {eventsLoading ? (
-              <div className="text-center py-6 text-ui-muted font-sans text-sm ">
-                Loading events…
-              </div>
+              <EventsLoading variant="choices" />
             ) : registrableEvents.length === 0 ? (
               <div className="text-center py-6 text-ui-muted font-sans text-sm">
                 No events available yet.
@@ -457,7 +396,7 @@ export default function Register() {
 
                   return (
                     <label
-                      key={ev.slug}
+                      key={ev._id || ev.slug}
                       className={`event-choice inline-flex items-center justify-center px-4 py-2.5 rounded-lg cursor-pointer select-none font-medium text-sm transition-colors border ${
                         isChecked
                           ? "event-choice-selected"
@@ -468,7 +407,7 @@ export default function Register() {
                         type="checkbox"
                         value={eventVal}
                         className="sr-only"
-                        {...register("events")}
+                        {...register("events", { validate: value => (Array.isArray(value) && value.length > 0) || "Choose at least one event" })}
                       />
                       <span
                         className={`transition-colors duration-150 ${
@@ -482,19 +421,19 @@ export default function Register() {
                 })}
               </div>
             )}
-          </div>
+            {errors.events && <p role="alert" className="registration-error">{errors.events.message}</p>}
+          </section>
 
           {/* Section 4: Payment (Hidden for NITW students) */}
           {!isNitwEmail(watchedEmail) && (
-            <section aria-labelledby="payment-heading" className="ui-panel  p-6 sm:p-8 space-y-6">
+            <section hidden={step !== 4} className="registration-step space-y-6">
               <div className="space-y-2">
-                <h2 id="payment-heading" className="text-xl font-bold text-white">Payment &amp; Proof</h2>
                 <p className="text-sm text-ui-muted">Transfer your registration fee to the account below, then attach the payment screenshot.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
-                <div className="space-y-4 rounded-xl border border-cyan-400/20 bg-ui-input p-5">
-                  <p className="text-xs uppercase tracking-widest font-bold text-cyan-300">Amount to transfer</p>
+                <div className="space-y-4 rounded-xl border border-ui-accent/20 bg-ui-input p-5">
+                  <p className="text-xs uppercase tracking-widest font-bold text-ui-accent">Amount to transfer</p>
                   <div className="space-y-1">
                     <p className="text-sm text-ui-muted">
                       {mode === "competition"
@@ -507,9 +446,6 @@ export default function Register() {
                       <span>₹{total}</span>
                       <span className="text-xs font-normal text-ui-muted uppercase font-sans">INR</span>
                     </div>
-                    <p className="text-xs text-ui-muted pt-1">
-                      {total > 0 ? "Use this amount for your bank transfer." : "Select your events above to calculate the fee before paying."}
-                    </p>
                   </div>
 
                   {mode === "gate" && (
@@ -527,7 +463,7 @@ export default function Register() {
                 </div>
 
                 <div className="rounded-xl border border-ui-border bg-ui-input p-5 space-y-4">
-                  <h3 className="text-sm font-bold text-cyan-300">1. Transfer to this account</h3>
+                  <h3 className="text-sm font-bold text-ui-accent">1. Transfer to this account</h3>
                   <dl className="space-y-3 text-sm">
                     <div>
                       <dt className="text-ui-muted">Name</dt>
@@ -550,9 +486,9 @@ export default function Register() {
               </div>
 
                 <div className="border-t border-ui-border pt-6 space-y-3">
-                  <label htmlFor="payment-screenshot" className="block text-sm font-bold text-cyan-300">2. Upload payment screenshot</label>
+                  <label htmlFor="payment-screenshot" className="block text-sm font-bold text-ui-accent">2. Upload payment screenshot</label>
                   <p id="payment-screenshot-help" className="text-xs text-ui-muted">After the transfer succeeds, upload a clear screenshot showing the amount and transaction reference.</p>
-                  <label htmlFor="payment-screenshot" className={`relative border border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-ui-input transition-colors focus-within:ring-2 focus-within:ring-cyan-300 ${paymentFile?.[0] ? "border-cyan-400" : "border-ui-border hover:border-cyan-400"}`}>
+                  <label htmlFor="payment-screenshot" className={`relative border border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-ui-input transition-colors focus-within:ring-2 focus-within:ring-ui-accent ${paymentFile?.[0] ? "border-ui-accent" : "border-ui-border hover:border-ui-accent"}`}>
                     <input
                       id="payment-screenshot"
                       type="file"
@@ -573,7 +509,7 @@ export default function Register() {
                     </svg>
                     <span className="text-sm font-medium text-ui-muted">
                       {paymentFile?.[0]?.name ? (
-                        <span className="text-cyan-300 font-sans break-all">{paymentFile[0].name}</span>
+                        <span className="text-ui-accent font-sans break-all">{paymentFile[0].name}</span>
                       ) : (
                         "Choose payment screenshot"
                       )}
@@ -587,27 +523,24 @@ export default function Register() {
             </section>
           )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting || authLoading || selectedEventIds.length === 0}
-            className="ui-button ui-button-primary w-full py-4 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {authLoading
-              ? "Uploading & Submitting…"
-              : selectedEventIds.length === 0
-              ? "Select at least one event to proceed"
-              : "Submit Registration"}
-          </button>
-        </form>
 
-        <p className="text-center text-xs text-ui-muted font-sans pb-4">
-          For unintended registrations, payment issues or discrepancies, reach out to{" "}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-ui-muted underline hover:text-cyan-400">
-            {CONTACT_EMAIL}
-          </a>
-        </p>
-      </div>
-    </div>
+            <section hidden={step !== 5} className="registration-step registration-review">
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Team lead</h3><button type="button" onClick={() => goTo(0)}>Edit details</button></div><p>{reviewName}</p><p>{watchedEmail}</p><p>{reviewCollege}</p>{isNitw && <p className="text-ui-muted">Roll number: {normalizeRollNumber(watch("rollNumber"))}</p>}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Your teammates</h3><button type="button" onClick={() => goTo(1)}>Edit team</button></div>{watchedMembers.map((member, index) => <p key={index}>{member.name} <span className="text-ui-muted">/ {member.studentType === "nitw" ? `NITW · ${normalizeRollNumber(member.rollNumber)}` : "Other institution"}</span></p>)}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Selected events</h3><button type="button" onClick={() => goTo(2)}>Edit events</button></div>{registrableEvents.filter(event => selectedEventIds.includes(event._id || event.slug)).map(event => <p key={event._id || event.slug}>{event.name}</p>)}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{isNitw ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
+            </section>
+          </div>
+          <footer className="registration-modal-footer">
+            {stepError && <p className="registration-error" role="alert">{stepError}</p>}
+            <div className="registration-footer-actions">
+              <button type="button" className="ui-button" disabled={busy} onClick={() => currentIndex > 0 ? goTo(steps[currentIndex - 1].id) : closeModal()}>{currentIndex > 0 ? "Back" : "Close"}</button>
+              {step === 5 ? <button key="submit" type="submit" className="ui-button ui-button-primary" disabled={busy}>{authLoading || isSubmitting ? "Uploading & submitting…" : "Submit registration"}</button> : <button key="continue" type="button" className="ui-button ui-button-primary" disabled={busy || (step === 2 && eventsLoading)} onClick={event => { event.preventDefault(); nextStep(); }}>Continue <span aria-hidden="true">→</span></button>}
+            </div>
+            <p className="registration-help">Need help? <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+          </footer>
+        </form>
+      </dialog>
+    </main>
   );
 }

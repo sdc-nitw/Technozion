@@ -73,13 +73,15 @@ const AuthProvider = ({ children }) => {
   const register = async (registrationData) => {
   if(loading) return;
   setLoading(true);
+  let requestStage = "registration";
   try {
     if (isNitwEmail(registrationData.email) && !isValidNitwRollNumber(registrationData.rollNumber)) {
       notify('Please enter your NITW roll number.', { variant: 'error' });
-      return;
+      return { ok: false, message: 'Please enter your NITW roll number.' };
     }
     // Helper: upload a file to Cloudinary and return the URL
-    const uploadToCloudinary = async (file) => {
+    const uploadToCloudinary = async (file, label) => {
+      requestStage = label;
       const cloudName = "dpjrslhwg"; // replace with your Cloudinary cloud name
       const uploadPreset = "technozian_upload"; // replace with your preset
       const formData = new FormData();
@@ -93,7 +95,8 @@ const AuthProvider = ({ children }) => {
       let data = {};
       try { data = await res.json(); } catch {}
       if (!res.ok || !data.secure_url) {
-        const err = new Error('File upload failed. Please try again.');
+        const reason = typeof data.error?.message === 'string' ? ` ${data.error.message}` : '';
+        const err = new Error(`${label} upload failed (${res.status}).${reason} Please try again.`);
         err.isUpload = true;
         throw err;
       }
@@ -106,11 +109,11 @@ const AuthProvider = ({ children }) => {
       const idFile = Array.isArray(registrationData.idDocument)
         ? registrationData.idDocument[0]
         : registrationData.idDocument;
-      idDocumentUrl = await uploadToCloudinary(idFile);
+      idDocumentUrl = await uploadToCloudinary(idFile, "ID document");
     } else {
       notify('Please upload your College ID/Aadhar.', { variant: 'error' })
       setLoading(false);
-      return;
+      return { ok: false, message: 'Please upload your College ID/Aadhar.' };
     }
 
     // Upload Payment Screenshot if needed
@@ -119,18 +122,18 @@ const AuthProvider = ({ children }) => {
     if (!emailDomain) {
       notify('Please enter a valid email address.', { variant: 'error' })
       setLoading(false);
-      return;
+      return { ok: false, message: 'Please enter a valid email address.' };
     }
     if (!isNitwEmail(registrationData.email)) {
       if (registrationData.paymentScreenshot) {
         const paymentFile = Array.isArray(registrationData.paymentScreenshot)
           ? registrationData.paymentScreenshot[0]
           : registrationData.paymentScreenshot;
-        paymentScreenshotUrl = await uploadToCloudinary(paymentFile);
+        paymentScreenshotUrl = await uploadToCloudinary(paymentFile, "Payment screenshot");
       } else {
         notify('Please upload a payment screenshot for non-nitw emails.', { variant: 'error' })
         setLoading(false);
-        return;
+        return { ok: false, message: 'Please upload a payment screenshot for non-NITW emails.' };
       }
     }
     
@@ -150,25 +153,45 @@ const AuthProvider = ({ children }) => {
       paymentScreenshotUrl,
     };
     // Send JSON with URLs to backend
+    requestStage = "registration";
     const res = await fetch(`${url}/api/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid response');
+    } catch {
+      const message = res.ok
+        ? 'The server returned an invalid registration confirmation. Check whether your account was created before submitting again.'
+        : `Registration service returned an invalid response (${res.status}). Please check that the backend is running and the API address is correct.`;
+      notify(message, { variant: 'error' });
+      return { ok: false, message };
+    }
     if (res.ok) {
     // No session yet: the user must verify their email first, then log in
     notify(data.message || 'Account created. Check your email to verify it.', { variant: 'success' })
     navigate("/registration-complete", { state: { verifyEmail: data.email || payload.email, participants: data.participants || [] } });
+    return { ok: true };
     }
     else {
       console.log("register error", data);
-      notify(data.message || "Registration failed", { variant: 'error' })
+      const message = typeof data.message === 'string' && data.message.trim()
+        ? data.message
+        : `Registration failed (${res.status}). Please try again.`;
+      notify(message, { variant: 'error' });
+      return { ok: false, message };
     }
   } catch (err) {
     console.log(err);
-    notify(err.isUpload ? err.message : 'Something went wrong during registration.',{ variant: 'error' })
+    const message = err.isUpload ? err.message : requestStage !== 'registration'
+      ? `Could not upload your ${requestStage.toLowerCase()}. Check your connection and try again.`
+      : 'Could not reach the registration service. Check that the backend is running and try again.';
+    notify(message, { variant: 'error' });
+    return { ok: false, message };
   } finally {
     setLoading(false);
   }

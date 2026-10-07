@@ -52,6 +52,7 @@ test("desktop pins, reverses, releases, and cleans up across route navigation", 
   await page.locator('.festival-invitation a[href="/register"]').click();
   await expect(page.locator(".registration-page")).toBeVisible();
   await expect(page.locator(".pin-spacer")).toHaveCount(0);
+  await page.getByRole("button", { name: "Close registration" }).click();
   await page.locator('.site-header a[href="/"]').last().click();
   await expect(page.locator(".pin-spacer")).toHaveCount(2);
   expect(errors).toEqual([]);
@@ -64,10 +65,11 @@ test("keyboard controls and offscreen event focus bring chapters into view", asy
   await jump(page, start + 1);
   await page.getByRole("button", { name: "Next featured event" }).click();
   await page.waitForTimeout(1100);
-  await expect(page.locator('.event-chapter[data-active="true"]')).not.toContainText("Impact Tank");
+  await expect(page.locator('.event-chapter[data-active="true"]')).toContainText("Impact Tank");
   await page.locator(".chapter-detail").last().focus();
   await page.waitForTimeout(1100);
   await expect(page.locator('.event-chapter[data-active="true"]')).toContainText("Vehicle Demonstration");
+  await expect(page.locator(".chapter-detail").last()).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator(".event_card")).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -94,11 +96,40 @@ test("reduced motion and short desktop viewports never pin", async ({ page }) =>
   await ready(page);
   await expect(page.locator(".event-chapter")).toHaveCount(6);
   await expect(page.locator(".pin-spacer")).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
   await expect(page.locator(".statement-title")).toHaveText("INNOVATION BEYOND BOUNDARIES.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator("html")).toHaveClass(/lenis/);
   await expect(page.locator(".pin-spacer")).toHaveCount(2);
   await page.setViewportSize({ width: 1440, height: 650 });
   await expect(page.locator(".pin-spacer")).toHaveCount(0);
+});
+
+test("wheel scrolling uses Lenis, prioritizes events, resets routes and keeps the slogan under the brand", async ({ page }) => {
+  const priorityEvents = [...events,
+    { ...events[0], _id: "cses", name: "CSES Arcade", club: "CSE Society" },
+    { ...events[1], _id: "cses-ai", name: "AI Unveiled", club: "CSE Society" },
+  ];
+  await page.route("**/api/events", route => route.fulfill({ json: priorityEvents }));
+  await ready(page);
+  await expect(page.locator("html")).toHaveClass(/lenis/);
+  await expect(page.locator(".event-chapter").first()).toContainText("SDC Games");
+  await expect(page.locator(".event-chapter").nth(1)).toContainText("CSES Arcade");
+  expect(await page.locator(".hero-display").evaluate(el => +getComputedStyle(el).zIndex)).toBeLessThan(await page.locator(".hero-brand-reveal").evaluate(el => +getComputedStyle(el).zIndex));
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  await page.mouse.wheel(0, -600);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(10);
+  await page.locator('.site-header a[href="/events"]').click();
+  await expect(page.locator(".catalogue-item").first()).toContainText("SDC Games");
+  await expect(page.locator(".catalogue-item").nth(1)).toContainText("CSES Arcade");
+  await page.locator('.site-header a[href="/register"]').click();
+  await expect(page.locator(".registration-page")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  const choices = page.locator('input[name="events"]');
+  await expect(choices).toHaveCount(priorityEvents.length);
+  await expect(choices.first()).toHaveValue("test-2");
+  await expect(choices.nth(1)).toHaveValue("cses");
 });
 
 test("Events opens directly to the catalogue and filters without a sliding journey", async ({ page }) => {
@@ -169,4 +200,36 @@ test("the closing guide exposes the brochure and official contact links", async 
   const pdf = await page.request.head("/pdf/tz.pdf");
   expect(pdf.ok()).toBeTruthy();
   expect(pdf.headers()["content-type"]).toContain("application/pdf");
+});
+
+test("slow event fetching shares requests across navigation and cached lists appear immediately", async ({ page }) => {
+  let release;
+  let requests = 0;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route("**/api/events", async route => {
+    requests += 1;
+    await gate;
+    await route.fulfill({ json: events });
+  });
+  try {
+    await ready(page, "/events");
+    await expect(page.getByRole("status", { name: "Loading events" })).toBeVisible();
+    await expect(page.locator(".event-placeholder")).toHaveCount(10);
+    await page.screenshot({ path: "/tmp/technozion-events-loading.png" });
+    await page.locator('.site-header a[href="/register"]').click();
+    await expect(page.locator(".registration-modal")).toBeVisible();
+    expect(requests).toBe(1);
+    release();
+    await expect(page.locator('input[name="events"]')).toHaveCount(events.length);
+    await page.getByRole("button", { name: "Close registration" }).click();
+    await page.locator('.site-header a[href="/events"]').click();
+    await expect(page.locator(".catalogue-item")).toHaveCount(events.length);
+    await expect(page.getByRole("status", { name: "Loading events" })).toHaveCount(0);
+    await page.locator('.site-header a[href="/"]').last().click();
+    await expect(page.locator(".event-chapter")).toHaveCount(events.length);
+    await expect(page.getByRole("status", { name: "Loading events" })).toHaveCount(0);
+    expect(requests).toBe(1);
+  } finally {
+    release();
+  }
 });

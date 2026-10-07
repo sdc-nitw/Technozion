@@ -12,6 +12,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "framer-motion": "^11.11.1",
     "gsap": "^3.15.0",
+    "lenis": "^1.3.26",
     "pdfjs-dist": "^6.3.289",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
