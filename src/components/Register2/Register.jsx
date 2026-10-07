@@ -14,7 +14,7 @@ const MAX_FEE = 2000; // cap if needed
 
 // ─── Static config ────────────────────────────────────────────────────────────
 const BROCHURE_URL = "/brochure.pdf";
-const QR_SRC = "/payment-qr.png";
+// const QR_SRC = "/payment-qr.png";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -72,7 +72,7 @@ export default function Register() {
     const comps = registrableEvents.filter(
       (e) =>
         selectedEventIds.includes(e._id || e.slug) &&
-        e.type?.toLowerCase() === "competition"
+        (e.eventType || e.type || "").toLowerCase().includes("competition")
     ).length;
 
     if (comps > 0) {
@@ -181,7 +181,7 @@ export default function Register() {
       
       {/* OTP Modal */}
       {otpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#18202c] border border-[#00f7ff]/30 rounded-2xl p-6 w-full max-w-sm shadow-[0_0_40px_rgba(0,247,255,0.15)]">
             <h3 className="text-xl font-bold text-white mb-2">Verify Email</h3>
             <p className="text-xs text-neutral-400 mb-6">
@@ -457,13 +457,15 @@ export default function Register() {
 
           {/* Section 4: Payment (Hidden for NITW students) */}
           {!isNitwEmail(watchedEmail) && (
-            <div className="rounded-xl border border-[#26354a] bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
-              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">
-                Payment
-              </span>
+            <section aria-labelledby="payment-heading" className="rounded-2xl border border-cyan-400/25 bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
+              <div className="space-y-2">
+                <h2 id="payment-heading" className="text-xl font-bold text-white">Payment &amp; Proof</h2>
+                <p className="text-sm text-neutral-300">Transfer your registration fee to the account below, then attach the payment screenshot.</p>
+              </div>
 
-              <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-                <div className="space-y-4 max-w-sm text-center md:text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+                <div className="space-y-4 rounded-xl border border-cyan-400/20 bg-[#0e131b] p-5">
+                  <p className="text-xs uppercase tracking-widest font-bold text-cyan-300">Amount to transfer</p>
                   <div className="space-y-1">
                     <p className="text-sm text-neutral-400">
                       {mode === "competition"
@@ -472,15 +474,13 @@ export default function Register() {
                         ? `Gate Entry · ${TEAM_SIZE} Members × ₹${GATE_FEE}`
                         : "No events selected yet"}
                     </p>
-                    <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-1 justify-center md:justify-start">
+                    <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-2">
                       <span>₹{total}</span>
                       <span className="text-xs font-normal text-neutral-400 uppercase font-mono">INR</span>
                     </div>
-                    {total > 0 && (
-                      <p className="text-xs text-neutral-500 pt-1">
-                        Scan the QR via GPay / PhonePe / Paytm, then upload the screenshot below.
-                      </p>
-                    )}
+                     <p className="text-xs text-neutral-400 pt-1">
+                      {total > 0 ? "Use this amount for your bank transfer." : "Select your events above to calculate the fee before paying."}
+                    </p>
                   </div>
 
                   {mode === "gate" && (
@@ -497,26 +497,46 @@ export default function Register() {
                   )}
                 </div>
 
-                <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                  <div className="p-3 bg-white rounded-xl shadow-xl border border-neutral-300">
-                    <img src={QR_SRC} alt="Payment QR" className="w-40 h-40 object-contain" />
-                  </div>
-                  <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">
-                    Scan with any UPI app
-                  </span>
+                 <div className="rounded-xl border border-[#26354a] bg-[#0e131b] p-5 space-y-4">
+                  <h3 className="text-sm font-bold text-cyan-300">1. Transfer to this account</h3>
+                  <dl className="space-y-3 text-sm">
+                    <div>
+                      <dt className="text-neutral-400">Name</dt>
+                      <dd className="font-semibold text-white">TECHNOZION</dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-400">Bank A/c No</dt>
+                      <dd className="font-mono text-white break-all">62046706567</dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-400">IFSC</dt>
+                      <dd className="font-mono text-white">SBIN0020149</dd>
+                    </div>
+                    <div>
+                      <dt className="text-neutral-400">Bank/Branch</dt>
+                      <dd className="text-white">SBI NITW</dd>
+                    </div>
+                  </dl>
                 </div>
               </div>
 
-              {total > 0 && (
-                <div>
-                  <label className={labelCls}>Upload Payment Screenshot</label>
-                  <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
+              <div className="border-t border-[#26354a] pt-6 space-y-3">
+                  <label htmlFor="payment-screenshot" className="block text-sm font-bold text-cyan-300">2. Upload payment screenshot</label>
+                  <p id="payment-screenshot-help" className="text-xs text-neutral-300">After the transfer succeeds, upload a clear screenshot showing the amount and transaction reference.</p>
+                  <label htmlFor="payment-screenshot" className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b] transition-colors focus-within:ring-2 focus-within:ring-cyan-300 ${paymentFile?.[0] ? "border-cyan-400" : "border-[#395563] hover:border-cyan-400"}`}>
                     <input
+                      id="payment-screenshot"
                       type="file"
-                      accept="image/*"
-                      className="hidden"
+                      accept="image/jpeg,image/png"
+                      aria-describedby="payment-screenshot-help payment-screenshot-error"
+                      aria-invalid={Boolean(errors.paymentScreenshot)}
+                      className="sr-only"
                       {...register("paymentScreenshot", {
                         required: total > 0 ? "Payment screenshot is required" : false,
+                        validate: {
+                          size: (files) => !files?.[0] || files[0].size <= 5 * 1024 * 1024 || "Screenshot must be 5 MB or smaller",
+                          type: (files) => !files?.[0] || ["image/jpeg", "image/png"].includes(files[0].type) || "Upload a JPG or PNG screenshot",
+                        },
                       })}
                     />
                     <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,34 +544,31 @@ export default function Register() {
                     </svg>
                     <span className="text-sm font-medium text-neutral-300">
                       {paymentFile?.[0]?.name ? (
-                        <span className="text-cyan-400 font-mono">{paymentFile[0].name}</span>
+                        <span className="text-cyan-300 font-mono">{paymentFile[0].name}</span>
                       ) : (
-                        "Click to upload your payment screenshot"
+                        "Choose payment screenshot"
                       )}
                     </span>
-                    <span className="text-xs text-neutral-500 mt-1">JPG / PNG — Maximum size: 5 MB</span>
+                    <span className="text-xs text-neutral-400 mt-2">{paymentFile?.[0] ? "Click to replace · JPG / PNG · Up to 5 MB" : "JPG / PNG · Up to 5 MB"}</span>
                   </label>
                   {errors.paymentScreenshot && (
-                    <p className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
+                    <p id="payment-screenshot-error" role="alert" className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
                   )}
                 </div>
-              )}
-            </div>
+              </section>
           )}
 
           {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting || authLoading || selectedEventIds.length === 0}
-            className="w-full py-4 rounded-xl font-bold uppercase tracking-wider text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:shadow-[0_0_35px_rgba(6,182,212,0.6)]"
+            className="w-full py-4 rounded-xl border border-cyan-300 font-bold uppercase tracking-wider text-sm transition-all duration-300 disabled:cursor-not-allowed disabled:bg-[#243b46] disabled:text-[#a7c4cd] disabled:border-[#395563] disabled:shadow-none bg-cyan-500 enabled:hover:bg-cyan-400 text-black shadow-[0_0_25px_rgba(6,182,212,0.4)] enabled:hover:shadow-[0_0_35px_rgba(6,182,212,0.6)]"
           >
             {authLoading
               ? "Uploading & Submitting…"
               : selectedEventIds.length === 0
               ? "Select at least one event to proceed"
-              : isNitwEmail(watchedEmail)
-              ? "Complete Registration"
-              : `Confirm & Pay ₹${total}`}
+              : "Submit Registration"}
           </button>
         </form>
 

@@ -29,13 +29,19 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileView(window.innerWidth <= 725);
+      const mobile = window.innerWidth <= 725;
+      setIsMobileView(mobile);
+      if (!mobile) setMenuOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const navigation = isMobileView ? [...oldNavigation, ...rightNavigation] : oldNavigation;
 
@@ -62,8 +68,8 @@ export default function Navbar() {
   ));
 
   return (
-    <>
-      <div className="navbar-background"></div>
+    <header className="site-header">
+      <div className="navbar-background" aria-hidden="true"></div>
 
       {!menuOpen ? (
         <div className="logo">
@@ -74,8 +80,12 @@ export default function Navbar() {
       ) : null}
 
       <nav className={menuOpen ? 'menu-open' : 'menu-closed'}>
-        <div
+        <button
+          type="button"
           className="menu"
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={menuOpen}
+          aria-controls="primary-navigation"
           onClick={() => {
             setMenuOpen(!menuOpen);
           }}
@@ -89,8 +99,8 @@ export default function Navbar() {
               <span className={menuOpen ? '' : 'ham'}></span>
             </>
           )}
-        </div>
-        <ul className={menuOpen ? "open" : ""}>{listItems}</ul>
+         </button>
+        <ul id="primary-navigation" className={menuOpen ? "open" : ""}>{listItems}</ul>
       </nav>
 
       {!isMobileView && (
@@ -98,6 +108,6 @@ export default function Navbar() {
           <ul>{rightNavItems}</ul>
         </nav>
       )}
-    </>
+    </header>
   );
 }

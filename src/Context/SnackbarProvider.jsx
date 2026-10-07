@@ -71,7 +71,7 @@ const SnackbarProvider = ({ children }) => {
       {children}
 
       {/* Toast container */}
-      <div className="fixed right-4 bottom-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
+      <div className="fixed right-4 bottom-6 z-[4000] flex flex-col items-end gap-3 pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}

@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+const { cyan } = require("tailwindcss/colors");
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
@@ -9,7 +10,7 @@ module.exports = {
         gray: "#1e1e1e",
         lightGray: "#2a2a2a",
         white: "#f9f9f9",
-        cyan: "#00ffff",
+        cyan: { ...cyan, DEFAULT: "#00ffff" },
         cyanLight: "#4ef0ff",
         cyanDark: "#008b8b",
         accent: "#00e0e0",
