@@ -3,6 +3,17 @@ import './team.css';
 import { WebCanvas } from "../bg_animation/bg_animate";
 import Teams from './Teams.png';
 import TeamCrad from "./TeamCrad";
+// Web Team: 5 cards per row on large screens, a short last row is centered.
+const WEB_TEAM_PER_ROW = 5;
+
+// Tailwind needs full class names, so the start column is looked up here.
+// Grid has 10 columns and each card spans 2.
+const LAST_ROW_START = {
+  1: "lg:col-start-5",
+  2: "lg:col-start-4",
+  3: "lg:col-start-3",
+  4: "lg:col-start-2",
+};
 
 export const TeamContent = () => {
   const [data, setData] = useState([]);
@@ -52,13 +63,25 @@ export const TeamContent = () => {
       </section>
 
       <section className="flex flex-col items-center justify-center mb-10">
-        <h1 className="lg:text-5xl sm:text-4xl text-3xl uppercase font-bold">Web Team</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-          {data?.web_team?.map((member, index) => (
-            <TeamCrad key={index} src={`/teamImages/${member.image}`} name={member.name} position={member.position} />
-          ))}
+  <h1 className="lg:text-5xl sm:text-4xl text-3xl uppercase font-bold">Web Team</h1>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-10 gap-6">
+    {data?.web_team?.map((member, index, arr) => {
+      const remainder = arr.length % WEB_TEAM_PER_ROW;
+      const isFirstOfLastRow = remainder !== 0 && index === arr.length - remainder;
+
+      return (
+        <div
+          key={index}
+          className={`flex justify-center lg:col-span-2 ${
+            isFirstOfLastRow ? LAST_ROW_START[remainder] : ""
+          }`}
+        >
+          <TeamCrad src={`/teamImages/${member.image}`} name={member.name} position={member.position} />
         </div>
-      </section>
+      );
+    })}
+  </div>
+</section>
     </div>
   );
 };

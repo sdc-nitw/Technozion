@@ -63,6 +63,9 @@ export default function Register() {
   const collegeIdFile = watch("collegeId");
   const paymentFile = watch("paymentScreenshot");
   const watchedEmail = watch("email") || "";
+  const isNitw = isNitwEmail(watchedEmail);
+
+  const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
 
   // ── Fee calculation ────────────────────────────────────────────────────────
   const { total, mode, competitionCount } = useMemo(() => {
@@ -340,7 +343,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className={labelCls}>Upload College ID Proof (PDF / JPG / PNG)</label>
+              <label className={labelCls}>Upload {idLabel} (PDF / JPG / PNG)</label>
               <label className="border-2 border-dashed border-[#26354a] hover:border-[#00f7ff]/70 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b]/60 hover:bg-[#0e131b] transition-all">
                 <input
                   type="file"
