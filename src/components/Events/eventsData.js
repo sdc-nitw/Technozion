@@ -8,6 +8,22 @@ let cache = { events: null, at: 0 };
 
 export const getFallbackEvents = () => normalizeEvents(rawEvents);
 
+export const correctEventPoster = (event) => {
+  const name = event.name || event.title;
+  if (typeof name !== "string" || name.trim().toLowerCase() !== "warangal trading ring 2.0") {
+    return event;
+  }
+
+  // This API assignment belongs to Bid to Build, not the FinWiz event.
+  const corrected = { ...event };
+  for (const field of ["imgsrc", "poster", "image"]) {
+    if (/\/bid_to_build\.jpeg(?:[?#].*)?$/i.test(event[field] || "")) {
+      corrected[field] = "";
+    }
+  }
+  return corrected;
+};
+
 const fetchFromApi = async () => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -19,7 +35,9 @@ const fetchFromApi = async () => {
     if (!res.ok) throw new Error(`Failed to load events (${res.status})`);
     const data = await res.json();
     const list = Array.isArray(data) ? data : data && data.events;
-    return Array.isArray(list) ? list.filter((e) => e && typeof e === "object") : [];
+    return Array.isArray(list)
+      ? list.filter((e) => e && typeof e === "object").map(correctEventPoster)
+      : [];
   } finally {
     clearTimeout(timer);
   }

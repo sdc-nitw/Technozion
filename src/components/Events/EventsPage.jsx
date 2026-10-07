@@ -14,6 +14,9 @@ const CATEGORY_TABS = [
   { key: "demonstration", label: "DEMONSTRATIONS" },
 ];
 
+const hasPoster = (event) =>
+  typeof event.imgsrc === "string" && event.imgsrc.trim().length > 0;
+
 export const EventsPage = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -53,7 +56,7 @@ export const EventsPage = () => {
       return typeLower.includes("workshop");
     }
     return true;
-  });
+  }).sort((a, b) => Number(hasPoster(b)) - Number(hasPoster(a)));
 
   const eventCount = filteredEvents.length;
   const countLabel =
