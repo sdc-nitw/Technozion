@@ -39,7 +39,7 @@
 
 
 /* ===== Nav buttons (shared by left + right nav) ===== */
-.site-header ul {
+.site-header nav ul {
 	display: flex;
 	flex: 1;
 	justify-content: flex-start;
@@ -170,7 +170,7 @@
 	display: flex;
 	justify-content: flex-end;
 	flex: 1;
-	position: absolute; /* Ensure it stays fixed to the right */
+	position: absolute;
 	right: 0; /* Align to the right */
 	z-index: 10;
 }
@@ -354,6 +354,8 @@
   background-color: rgba(0, 0, 0, 0.92);
   z-index: 9; /* Sits behind the nav items (z-index: 10) */
 }
+
+/* Keep every navigation piece in one layer above page content. */
 .site-header {
   position: fixed;
   inset: 0 0 auto;

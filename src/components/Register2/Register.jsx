@@ -14,7 +14,6 @@ const MAX_FEE = 2000; // cap if needed
 
 // ─── Static config ────────────────────────────────────────────────────────────
 const BROCHURE_URL = "/brochure.pdf";
-// const QR_SRC = "/payment-qr.png";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -478,7 +477,7 @@ export default function Register() {
                       <span>₹{total}</span>
                       <span className="text-xs font-normal text-neutral-400 uppercase font-mono">INR</span>
                     </div>
-                     <p className="text-xs text-neutral-400 pt-1">
+                    <p className="text-xs text-neutral-400 pt-1">
                       {total > 0 ? "Use this amount for your bank transfer." : "Select your events above to calculate the fee before paying."}
                     </p>
                   </div>
@@ -497,7 +496,7 @@ export default function Register() {
                   )}
                 </div>
 
-                 <div className="rounded-xl border border-[#26354a] bg-[#0e131b] p-5 space-y-4">
+                <div className="rounded-xl border border-[#26354a] bg-[#0e131b] p-5 space-y-4">
                   <h3 className="text-sm font-bold text-cyan-300">1. Transfer to this account</h3>
                   <dl className="space-y-3 text-sm">
                     <div>
@@ -520,7 +519,7 @@ export default function Register() {
                 </div>
               </div>
 
-              <div className="border-t border-[#26354a] pt-6 space-y-3">
+                <div className="border-t border-[#26354a] pt-6 space-y-3">
                   <label htmlFor="payment-screenshot" className="block text-sm font-bold text-cyan-300">2. Upload payment screenshot</label>
                   <p id="payment-screenshot-help" className="text-xs text-neutral-300">After the transfer succeeds, upload a clear screenshot showing the amount and transaction reference.</p>
                   <label htmlFor="payment-screenshot" className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b] transition-colors focus-within:ring-2 focus-within:ring-cyan-300 ${paymentFile?.[0] ? "border-cyan-400" : "border-[#395563] hover:border-cyan-400"}`}>
@@ -544,7 +543,7 @@ export default function Register() {
                     </svg>
                     <span className="text-sm font-medium text-neutral-300">
                       {paymentFile?.[0]?.name ? (
-                        <span className="text-cyan-300 font-mono">{paymentFile[0].name}</span>
+                        <span className="text-cyan-300 font-mono break-all">{paymentFile[0].name}</span>
                       ) : (
                         "Choose payment screenshot"
                       )}
@@ -555,7 +554,7 @@ export default function Register() {
                     <p id="payment-screenshot-error" role="alert" className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
                   )}
                 </div>
-              </section>
+            </section>
           )}
 
           {/* Submit */}

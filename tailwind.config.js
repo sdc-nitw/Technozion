@@ -1,3 +1,5 @@
+const { cyan } = require("tailwindcss/colors");
+
 /** @type {import('tailwindcss').Config} */
 const { cyan } = require("tailwindcss/colors");
 module.exports = {

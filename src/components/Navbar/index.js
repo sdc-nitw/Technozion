@@ -99,7 +99,7 @@ export default function Navbar() {
               <span className={menuOpen ? '' : 'ham'}></span>
             </>
           )}
-         </button>
+        </button>
         <ul id="primary-navigation" className={menuOpen ? "open" : ""}>{listItems}</ul>
       </nav>
 
