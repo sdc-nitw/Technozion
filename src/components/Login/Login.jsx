@@ -1,7 +1,8 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { Link, Navigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
+import { useSnackbar } from "../../Context/SnackbarProvider";
 const inputClass =
   "w-full px-4 py-3 bg-gray rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan transition";
 
@@ -20,8 +21,36 @@ export const Login = () => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  if (user) return <Navigate to="/" replace />;
-  const onSubmit = ({ email, password }) => login(email.trim(), password);
+  const { notify } = useSnackbar();
+const location = useLocation();
+// email that still needs verifying (set after signing up, or after a blocked login)
+const [pendingEmail, setPendingEmail] = useState((location.state && location.state.verifyEmail) || "");
+const [resending, setResending] = useState(false);
+if (user) return <Navigate to="/" replace />;
+const onSubmit = async ({ email, password }) => {
+  const result = await login(email.trim(), password);
+  if (result && result.notVerified) setPendingEmail(result.email);
+};
+
+const resendVerification = async () => {
+  if (!pendingEmail || resending) return;
+  setResending(true);
+  try {
+    const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: pendingEmail }),
+    });
+    const data = await res.json();
+    notify(data.message || (res.ok ? "Verification email sent." : "Could not resend the email."), {
+      variant: res.ok ? "success" : "error",
+    });
+  } catch {
+    notify("Couldn't reach the server. Please try again.", { variant: "error" });
+  } finally {
+    setResending(false);
+  }
+};
   return (
     <div className="min-h-screen bg-black text-white px-4 pt-28 pb-12 flex flex-col items-center">
       <div className="w-full max-w-md">
@@ -31,6 +60,23 @@ export const Login = () => {
             Sign in with the email and password you registered with.
           </p>
         </div>
+
+        {pendingEmail && (
+          <div className="mb-6 p-4 rounded-lg bg-black/40 border border-cyan/30 text-sm">
+            <p>
+              Your email <span className="font-semibold text-cyan">{pendingEmail}</span> isn't
+              verified yet. Open the link we emailed you, then log in here.
+            </p>
+            <button
+              type="button"
+              onClick={resendVerification}
+              disabled={resending}
+              className="mt-3 px-4 py-2 rounded-lg bg-cyan/20 hover:bg-cyan/30 transition font-semibold disabled:opacity-50"
+            >
+              {resending ? "Sending…" : "Resend verification email"}
+            </button>
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit(onSubmit)}

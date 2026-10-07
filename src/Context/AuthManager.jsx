@@ -54,6 +54,9 @@ const AuthProvider = ({ children }) => {
         persistSession(data)
         setUser(data.user)
         navigate('/')
+      } else if (data.code === 'EMAIL_NOT_VERIFIED') {
+        notify(data.message || 'Please verify your email before logging in.', { variant: 'error' })
+        return { notVerified: true, email: data.email || email }
       } else {
         // show error snackbar
         notify(data.message || 'Login failed', { variant: 'error' })
@@ -150,11 +153,11 @@ const AuthProvider = ({ children }) => {
 
     const data = await res.json();
     if (res.ok) {
-      persistSession(data);
-      setUser(data.user);
-      notify('Registration successful!', { variant: 'success' })
-      navigate("/");
-    } else {
+    // No session yet: the user must verify their email first, then log in
+    notify(data.message || 'Account created. Check your email to verify it.', { variant: 'success' })
+    navigate("/login", { state: { verifyEmail: data.email || payload.email } });
+    }
+    else {
       console.log("register error", data);
       notify(data.message || "Registration failed", { variant: 'error' })
     }
