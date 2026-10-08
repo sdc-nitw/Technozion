@@ -217,8 +217,8 @@
     "type": "Competition",
     "teamSize": "1",
     "duration": "90 mins",
-    "imgsrc": "",
-    "poster": "",
+    "imgsrc": "/posters26/warangaltradingpit.jpeg",
+    "poster":  "/posters26/warangaltradingpit.jpeg",
     "description": "5 simulated trading days compressed into a single 90-minute financial simulation. Manage ₹10,00,000 in virtual capital across 15-20 asset classes amid unexpected news releases and market shocks.",
     "rules": "Real-time order execution across equities and commodities. Final standings determined by total portfolio valuation and risk-adjusted return.",
     "poc": "Jeel (+91 6355 198 983), Naman (+91 70168 79968)"
@@ -497,8 +497,8 @@
     "type": "Competition",
     "teamSize": "2-4",
     "duration": "20 mins presentation",
-    "imgsrc": "/posters26/sharktank3.jpg",
-    "poster": "/posters26/sharktank3.jpg",
+    "imgsrc": "/posters26/sharktank3.jpeg",
+    "poster": "/posters26/sharktank3.jpeg",
     "description": "Innovation-driven competition: pick a real-world problem (science, technology, healthcare, sustainability, engineering, education), research it, and build a working functional prototype. Shortlisted teams pitch before a jury judged on innovation, technical execution, problem-solving, functionality, practicality, and presentation.",
     "rules": "Registration, problem statement selection, research and analysis, solution design, working prototype development, final presentation and demo, jury evaluation and Q&A, results and prize distribution.",
     "poc": "Munawar (9100658648)"
