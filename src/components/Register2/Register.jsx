@@ -41,6 +41,22 @@ export default function Register() {
     [allEvents]
   );
 
+  const { competitionEvents, otherEvents } = useMemo(() => {
+    const competitions = [];
+    const others = [];
+
+    registrableEvents.forEach((e) => {
+      const typeStr = (e.eventType || e.type || "").toLowerCase();
+      if (typeStr.includes("competition")) {
+        competitions.push(e);
+      } else {
+        others.push(e);
+      }
+    });
+
+    return { competitionEvents: competitions, otherEvents: others };
+  }, [registrableEvents]);
+
   const {
     register,
     handleSubmit,
@@ -115,6 +131,36 @@ export default function Register() {
     };
 
     await authRegister(payload);
+  };
+
+  const renderEventChip = (ev) => {
+    const eventVal = ev._id || ev.slug;
+    const isChecked = selectedEventIds.includes(eventVal);
+
+    return (
+      <label
+        key={ev.slug || ev._id}
+        className={`inline-flex items-center justify-center px-6 py-2.5 rounded-full cursor-pointer select-none font-bold text-xs tracking-wider uppercase transition-all duration-200 border-2 ${
+          isChecked
+            ? "!bg-[#00f7ff] !border-[#00f7ff] shadow-[0_0_20px_#00f7ff] scale-105"
+            : "bg-transparent border-[#00f7ff] hover:bg-[#00f7ff]/10 hover:shadow-[0_0_12px_rgba(0,247,255,0.4)]"
+        }`}
+      >
+        <input
+          type="checkbox"
+          value={eventVal}
+          className="hidden"
+          {...register("events")}
+        />
+        <span
+          className={`transition-colors duration-150 ${
+            isChecked ? "!text-black font-extrabold" : "!text-white"
+          }`}
+        >
+          {ev.name}
+        </span>
+      </label>
+    );
   };
 
   return (
@@ -304,7 +350,7 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <h2 className="text-xl font-bold tracking-wide text-neutral-100 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
@@ -324,36 +370,38 @@ export default function Register() {
                 No events available yet.
               </div>
             ) : (
-              <div className="flex flex-wrap gap-3 pt-1">
-                {registrableEvents.map((ev) => {
-                  const eventVal = ev._id || ev.slug;
-                  const isChecked = selectedEventIds.includes(eventVal);
+              <div className="space-y-6">
+                {competitionEvents.length > 0 && (
+                  <div className="p-5 sm:p-6 rounded-xl bg-[#18202c] border border-[#26354a] space-y-3">
+                    <div className="border-b border-[#26354a]/80 pb-2">
+                      <h3 className="text-sm font-mono uppercase tracking-wider font-bold text-cyan-400">
+                        Competitions (₹{COMPETITION_FEE} each)
+                      </h3>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        Compete for fest prizes and podium finishes.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {competitionEvents.map(renderEventChip)}
+                    </div>
+                  </div>
+                )}
 
-                  return (
-                    <label
-                      key={ev.slug}
-                      className={`inline-flex items-center justify-center px-6 py-2.5 rounded-full cursor-pointer select-none font-bold text-xs tracking-wider uppercase transition-all duration-200 border-2 ${
-                        isChecked
-                          ? "!bg-[#00f7ff] !border-[#00f7ff] shadow-[0_0_20px_#00f7ff] scale-105"
-                          : "bg-transparent border-[#00f7ff] hover:bg-[#00f7ff]/10 hover:shadow-[0_0_12px_rgba(0,247,255,0.4)]"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        value={eventVal}
-                        className="hidden"
-                        {...register("events")}
-                      />
-                      <span
-                        className={`transition-colors duration-150 ${
-                          isChecked ? "!text-black font-extrabold" : "!text-white"
-                        }`}
-                      >
-                        {ev.name}
-                      </span>
-                    </label>
-                  );
-                })}
+                {otherEvents.length > 0 && (
+                  <div className="p-5 sm:p-6 rounded-xl bg-[#18202c] border border-[#26354a] space-y-3">
+                    <div className="border-b border-[#26354a]/80 pb-2">
+                      <h3 className="text-sm font-mono uppercase tracking-wider font-bold text-neutral-300">
+                        Other Events &amp; Workshops
+                      </h3>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        General events covered under standard entry.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {otherEvents.map(renderEventChip)}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
