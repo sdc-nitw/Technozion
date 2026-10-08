@@ -6,7 +6,7 @@ import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
 
 const TEAM_SIZE = 4;
-const GATE_FEE = 200;
+const GATE_FEE = 100;
 const COMPETITION_FEE = 500;
 const MAX_FEE = 2000;
 
