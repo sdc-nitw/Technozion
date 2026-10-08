@@ -483,8 +483,8 @@
     "type": "Competition",
     "teamSize": "3-5",
     "duration": "Half a day",
-    "imgsrc": null,
-    "poster": null,
+    "imgsrc": "/posters26/naturaldisaster.jpeg",
+    "poster": "/posters26/naturaldisaster.jpeg",
     "description": "National-level engineering design challenge: teams work on a problem for a month, then present and demonstrate at the fest. Five problem statements (teams may enter any two): PS-01 Flood Vault, PS-02 Ground Zero (earthquake FEM), PS-03 Survivor Seeker (search-and-rescue rover), PS-04 EvacSim (cyclone evacuation planning tool), PS-05 Student Innovation Challenge. Prizes: ₹7,000 for 1st and ₹3,500 for 2nd.",
     "rules": "Up to two problem statements per team, each judged independently. Per challenge: Design Report (max 5 pages), Engineering Development Log (Excel), and CAD files with assembly drawing (PS-04: source code and simulation model). 3-minute technical presentation before testing. Single live round: PS-01 is a 10-minute submersion test, PS-03 a timed obstacle course, PS-02/04/05 judged on analysis and presentation.",
     "poc": "Royce Fran (95811 82664)"
