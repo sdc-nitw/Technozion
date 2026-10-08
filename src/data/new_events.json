@@ -217,8 +217,8 @@
     "type": "Competition",
     "teamSize": "1",
     "duration": "90 mins",
-    "imgsrc": "/posters26/warangal_trading_ring.png",
-    "poster": "/posters26/warangal_trading_ring.png",
+    "imgsrc": "",
+    "poster": "",
     "description": "5 simulated trading days compressed into a single 90-minute financial simulation. Manage ₹10,00,000 in virtual capital across 15-20 asset classes amid unexpected news releases and market shocks.",
     "rules": "Real-time order execution across equities and commodities. Final standings determined by total portfolio valuation and risk-adjusted return.",
     "poc": "Jeel (+91 6355 198 983), Naman (+91 70168 79968)"
@@ -544,5 +544,19 @@
     "description": "Two-day event with a games showcase and a reinforcement learning hackathon. After playing games on multiple stations (including two built by CSES), teams get the game source code at 6 PM and train an RL model to beat it. Work is online until 9 AM on Day 2, then in person, ending with evening presentations.",
     "rules": "3 rounds: Games Showcase, RL Hackathon, Final Evaluation. Models are evaluated mainly on win rate under standardized testing conditions. Final models must be submitted before evaluation; any attempt to manipulate evaluation leads to disqualification.",
     "poc": "Don Chacko (+917356106869), Dhruv Bhatia (+918454042997)"
+  },
+  {
+    "id": "technozion-data-science-hackathon",
+    "name": "Technozion Data Science Hackathon",
+    "club": "Siemens",
+    "category": "COMPETITIONS",
+    "type": "Competition",
+    "teamSize": "1-3",
+    "duration": "Online Oct 12-24 + Offline finals Oct 30-31",
+    "imgsrc": "/posters26/SiemensDSH.png",
+    "poster": "/posters26/SiemensDSH.png",
+    "description": "Two-level data science hackathon supported by Siemens. Teams build data-driven, intelligent applications on Rapidminer AI Studio using data analysis, predictive modelling and intelligent decision-making. Level 1 is online; top teams are shortlisted for the offline finals at NIT Warangal, where they tackle a new problem statement and/or enhance their Level 1 solution. Open to students of any institution and year. Prize pool: ₹25,000 (merchandise).",
+    "rules": "Teams of 1-3; all members need valid student email IDs. Level 1 (online, Oct 12-24, 2026): solve the released problem statement in Rapidminer AI Studio and submit a zip (College_Abbreviation_TeamName.zip) with the .rmp session file, presentation, 5-15 min video demo (YouTube link) and dataset. Level 2 (offline finals, Oct 30-31, 2026, NIT Warangal): shortlisted teams bring their own laptops and work on a new problem and/or enhance their Level 1 solution; same submission package, no video. Evaluated on model performance, depth of tool exploration and presentation.",
+    "poc": ""
   }
 ]
