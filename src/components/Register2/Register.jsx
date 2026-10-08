@@ -24,6 +24,11 @@ const rollNumberRules = {
   validate: (value) => isValidNitwRollNumber(value) || "Use 3–32 letters, digits or hyphens",
   shouldUnregister: true,
 };
+// Order here = display order. `key` is matched as a substring of the event's type.
+const OTHER_EVENT_CATEGORIES = [
+  { key: "game", title: "Games", description: "Fun and gaming events covered under gate entry." },
+  { key: "demo", title: "Demonstrations", description: "Live demos and exhibitions covered under gate entry." }
+];
 
 export default function Register() {
   const [allEvents, setAllEvents] = useState([]);
@@ -56,6 +61,29 @@ export default function Register() {
 
     return { competitionEvents: competitions, otherEvents: others };
   }, [registrableEvents]);
+  
+    const otherEventGroups = useMemo(() => {
+    const groups = OTHER_EVENT_CATEGORIES.map((c) => ({ ...c, events: [] }));
+    const uncategorized = [];
+
+    otherEvents.forEach((e) => {
+      const typeStr = (e.eventType || e.type || "").toLowerCase();
+      const group = groups.find((g) => typeStr.includes(g.key));
+      if (group) group.events.push(e);
+      else uncategorized.push(e);
+    });
+
+    const result = groups.filter((g) => g.events.length > 0);
+    if (uncategorized.length > 0) {
+      result.push({
+        key: "other",
+        title: "Other Events",
+        description: "General events covered under standard entry.",
+        events: uncategorized,
+      });
+    }
+    return result;
+  }, [otherEvents]);
 
   const {
     register,
@@ -81,15 +109,28 @@ export default function Register() {
   const watchedMembers = watch("members") || [];
   const isNitw = isNitwEmail(watchedEmail);
 
+  // Lead counts as external if email isn't NITW; each member by studentType
+  const externalCount =
+    (isNitw ? 0 : 1) +
+    watchedMembers.filter((m) => m?.studentType !== "nitw").length;
+
+  const hasExternalParticipant = externalCount > 0;
+
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
 
-  const { total, mode, competitionCount } = useMemo(() => {
+   const { total, mode, competitionCount } = useMemo(() => {
     const comps = registrableEvents.filter(
       (e) =>
         selectedEventIds.includes(e._id || e.slug) &&
         (e.eventType || e.type || "").toLowerCase().includes("competition")
     ).length;
 
+    // Fully NITW team or nothing selected: nothing to pay
+    if (externalCount === 0 || selectedEventIds.length === 0) {
+      return { total: 0, mode: null, competitionCount: comps };
+    }
+
+    // Competition fee: per team, per competition
     if (comps > 0) {
       return {
         total: Math.min(COMPETITION_FEE * comps, MAX_FEE),
@@ -98,17 +139,14 @@ export default function Register() {
       };
     }
 
-    if (selectedEventIds.length > 0) {
-      return {
-        total: Math.min(GATE_FEE * TEAM_SIZE, MAX_FEE),
-        mode: "gate",
-        competitionCount: 0,
-      };
-    }
-
-    return { total: 0, mode: null, competitionCount: 0 };
-  }, [selectedEventIds, registrableEvents]);
-
+    // Gate fee: per non-NITW person
+    return {
+      total: Math.min(GATE_FEE * externalCount, MAX_FEE),
+      mode: "gate",
+      competitionCount: 0,
+    };
+  }, [selectedEventIds, registrableEvents, externalCount]);
+  
   const { register: authRegister, loading: authLoading } = useAuth();
 
   const onSubmit = async (data) => {
@@ -119,7 +157,7 @@ export default function Register() {
       rollNumber: isNitw ? normalizeRollNumber(data.rollNumber) : undefined,
       collegeName: data.college,
       idDocument: data.collegeId[0],
-      paymentScreenshot: data.paymentScreenshot?.[0] || null,
+      paymentScreenshot: hasExternalParticipant ? data.paymentScreenshot?.[0] || null : null,
       teamMembers: (data.members || []).map((member) => ({
         name: member.name,
         studentType: member.studentType,
@@ -387,26 +425,26 @@ export default function Register() {
                   </div>
                 )}
 
-                {otherEvents.length > 0 && (
-                  <div className="p-5 sm:p-6 rounded-xl bg-[#18202c] border border-[#26354a] space-y-3">
+                                {otherEventGroups.map((group) => (
+                  <div key={group.key} className="p-5 sm:p-6 rounded-xl bg-[#18202c] border border-[#26354a] space-y-3">
                     <div className="border-b border-[#26354a]/80 pb-2">
                       <h3 className="text-sm font-mono uppercase tracking-wider font-bold text-neutral-300">
-                        Other Events &amp; Workshops
+                        {group.title}
                       </h3>
                       <p className="text-xs text-neutral-400 mt-0.5">
-                        General events covered under standard entry.
+                        {group.description}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3 pt-2">
-                      {otherEvents.map(renderEventChip)}
+                      {group.events.map(renderEventChip)}
                     </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
 
-          {!isNitw && (
+          {hasExternalParticipant && (
             <section aria-labelledby="payment-heading" className="rounded-2xl border border-cyan-400/25 bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
               <div className="space-y-2">
                 <h2 id="payment-heading" className="text-xl font-bold text-white">Payment &amp; Proof</h2>
@@ -419,10 +457,10 @@ export default function Register() {
                   <div className="space-y-1">
                     <p className="text-sm text-neutral-400">
                       {mode === "competition"
-                        ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
-                        : mode === "gate"
-                        ? `Gate Entry · ${TEAM_SIZE} Members × ₹${GATE_FEE}`
-                        : "No events selected yet"}
+                      ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
+                      : mode === "gate"
+                      ? `Gate Entry · ${externalCount} person${externalCount > 1 ? "s" : ""} × ₹${GATE_FEE}`
+                      : "No events selected yet"}
                     </p>
                     <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-2">
                       <span>₹{total}</span>
@@ -437,7 +475,7 @@ export default function Register() {
                   {mode === "gate" && (
                     <div className="text-xs text-neutral-300 bg-[#0e131b] border border-[#26354a] rounded-lg p-3 space-y-1 text-left">
                       <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
-                      <p>Fee: ₹{GATE_FEE} × {TEAM_SIZE} members = ₹{GATE_FEE * TEAM_SIZE}</p>
+                      <p>Fee: ₹{GATE_FEE} × {externalCount} non-NITW member{externalCount > 1 ? "s" : ""} = ₹{total}</p>
                     </div>
                   )}
                   {mode === "competition" && (
@@ -483,7 +521,7 @@ export default function Register() {
                     aria-invalid={Boolean(errors.paymentScreenshot)}
                     className="sr-only"
                     {...register("paymentScreenshot", {
-                      required: total > 0 ? "Payment screenshot is required" : false,
+                      required: hasExternalParticipant && total > 0 ? "Payment screenshot is required" : false,
                       validate: {
                         size: (files) => !files?.[0] || files[0].size <= 5 * 1024 * 1024 || "Screenshot must be 5 MB or smaller",
                         type: (files) => !files?.[0] || ["image/jpeg", "image/png"].includes(files[0].type) || "Upload a JPG or PNG screenshot",
