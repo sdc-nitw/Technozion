@@ -121,19 +121,25 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
-    if (!isNitwEmail(registrationData.email)) {
+        // Payment is required if the lead OR any teammate is not from NITW
+    const paymentTeamMembers =
+      registrationData.registrationType === "team" ? (registrationData.teamMembers || []) : [];
+    const requiresPayment =
+      !isNitwEmail(registrationData.email) ||
+      paymentTeamMembers.some((m) => m?.studentType !== "nitw");
+
+    if (requiresPayment) {
       if (registrationData.paymentScreenshot) {
         const paymentFile = Array.isArray(registrationData.paymentScreenshot)
           ? registrationData.paymentScreenshot[0]
           : registrationData.paymentScreenshot;
         paymentScreenshotUrl = await uploadToCloudinary(paymentFile);
       } else {
-        notify('Please upload a payment screenshot for non-nitw emails.', { variant: 'error' })
+        notify('Please upload a payment screenshot if any team member is not from NITW.', { variant: 'error' })
         setLoading(false);
         return;
       }
-    }
-    
+    }    
 
     // Prepare payload for backend
     const payload = {
