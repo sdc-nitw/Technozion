@@ -2,21 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { fetchEvents } from "../Events/eventsData";
 import { WebCanvas } from "../bg_animation/bg_animate";
-import { API_URL } from "../../config";
 import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
 
-// ─── Fee constants ────────────────────────────────────────────────────────────
-const TEAM_SIZE = 4; // fixed team size
-const GATE_FEE = 200; // per-person gate entry fee
-const COMPETITION_FEE = 500; // per-team per-competition event fee
-const MAX_FEE = 2000; // cap if needed
+const TEAM_SIZE = 4;
+const GATE_FEE = 200;
+const COMPETITION_FEE = 500;
+const MAX_FEE = 2000;
 
-// ─── Static config ────────────────────────────────────────────────────────────
 const BROCHURE_URL = "/brochure.pdf";
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
-// ─── Input / label styles (Matched to Patron theme) ───────────────────────────
 const inputCls =
   "w-full px-4 py-2.5 rounded-lg bg-[#0e131b] border border-[#26354a] text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-[#00f7ff] focus:ring-1 focus:ring-[#00f7ff] focus:shadow-[0_0_15px_rgba(0,247,255,0.35)] transition-all duration-200";
 const labelCls =
@@ -30,7 +26,6 @@ const rollNumberRules = {
 };
 
 export default function Register() {
-  // ── Events state ──────────────────────────────────────────────────────────
   const [allEvents, setAllEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
 
@@ -41,13 +36,11 @@ export default function Register() {
       .finally(() => setEventsLoading(false));
   }, []);
 
-  // Only show events that are open for registration
   const registrableEvents = useMemo(
     () => allEvents.filter((e) => e.registrationOpen !== false),
     [allEvents]
   );
 
-  // ── Form ──────────────────────────────────────────────────────────────────
   const {
     register,
     handleSubmit,
@@ -74,7 +67,6 @@ export default function Register() {
 
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
 
-  // ── Fee calculation ────────────────────────────────────────────────────────
   const { total, mode, competitionCount } = useMemo(() => {
     const comps = registrableEvents.filter(
       (e) =>
@@ -83,18 +75,16 @@ export default function Register() {
     ).length;
 
     if (comps > 0) {
-      const rate = COMPETITION_FEE;
       return {
-        total: Math.min(rate * comps, MAX_FEE),
+        total: Math.min(COMPETITION_FEE * comps, MAX_FEE),
         mode: "competition",
         competitionCount: comps,
       };
     }
 
     if (selectedEventIds.length > 0) {
-      const rate = GATE_FEE;
       return {
-        total: Math.min(rate * TEAM_SIZE, MAX_FEE),
+        total: Math.min(GATE_FEE * TEAM_SIZE, MAX_FEE),
         mode: "gate",
         competitionCount: 0,
       };
@@ -103,69 +93,9 @@ export default function Register() {
     return { total: 0, mode: null, competitionCount: 0 };
   }, [selectedEventIds, registrableEvents]);
 
-  // ── OTP State ─────────────────────────────────────────────────────────────
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState("");
-
-  // Reset verification if email changes
-  useEffect(() => {
-    setEmailVerified(false);
-  }, [watchedEmail]);
-
-  const handleSendOtp = async () => {
-    if (!watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)) {
-      alert("Please enter a valid email first.");
-      return;
-    }
-    setOtpSending(true);
-    setOtpError("");
-    try {
-      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: watchedEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to send OTP");
-      setOtpModalOpen(true);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otpCode) return;
-    setOtpError("");
-    try {
-      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: watchedEmail, otp: otpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Invalid OTP");
-      
-      setEmailVerified(true);
-      setOtpModalOpen(false);
-    } catch (err) {
-      setOtpError(err.message);
-    }
-  };
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
   const { register: authRegister, loading: authLoading } = useAuth();
-  
-  const onSubmit = async (data) => {
-    if (!emailVerified) {
-      alert("Please verify your email address before submitting.");
-      return;
-    }
 
+  const onSubmit = async (data) => {
     const payload = {
       name: data.name,
       gender: data.gender,
@@ -187,57 +117,14 @@ export default function Register() {
     await authRegister(payload);
   };
 
-  // ─── UI ───────────────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-screen bg-black text-neutral-100 py-12 px-4 sm:px-6 overflow-hidden">
-      
-      {/* OTP Modal */}
-      {otpModalOpen && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#18202c] border border-[#00f7ff]/30 rounded-2xl p-6 w-full max-w-sm shadow-[0_0_40px_rgba(0,247,255,0.15)]">
-            <h3 className="text-xl font-bold text-white mb-2">Verify Email</h3>
-            <p className="text-xs text-neutral-400 mb-6">
-              We sent a 6-digit code to <span className="text-cyan-400 font-mono">{watchedEmail}</span>.
-            </p>
-            <input
-              type="text"
-              maxLength={6}
-              placeholder="Enter 6-digit OTP"
-              className={`${inputCls} text-center tracking-[0.5em] font-mono text-lg`}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value)}
-            />
-            {otpError && <p className="text-red-400 text-xs mt-2 text-center">{otpError}</p>}
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setOtpModalOpen(false)}
-                className="flex-1 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm font-medium transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleVerifyOtp}
-                className="flex-1 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black text-sm font-bold shadow-[0_0_15px_rgba(0,247,255,0.4)] transition"
-              >
-                Verify
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Background Constellation Canvas & Spotlight (Register Only) ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <WebCanvas />
         <div className="absolute inset-0 spotlight opacity-95"></div>
       </div>
 
-      {/* ── Foreground Content ── */}
       <div className="max-w-4xl mx-auto space-y-8 relative z-10 pt-4">
-        {/* Header */}
         <div className="text-center space-y-3">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">
             Registration
@@ -256,7 +143,6 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Section 1: Team Lead Details */}
           <div className="p-6 sm:p-8 rounded-xl bg-[#18202c] border border-[#26354a] shadow-[0_8px_30px_rgb(0,0,0,0.45)] space-y-6">
             <h2 className="text-lg font-bold tracking-wide text-white border-b border-[#26354a] pb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-cyan-400" />
@@ -292,35 +178,18 @@ export default function Register() {
                 )}
               </div>
 
-              <div className="relative">
+              <div>
                 <label className={labelCls}>Email Address</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    placeholder="pikachu@example.com"
-                    className={`${inputCls} pr-24`}
-                    {...register("email", {
-                      required: "Email is required",
-                      pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
-                    })}
-                    readOnly={emailVerified}
-                  />
-                  {emailVerified ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 text-xs font-bold tracking-wide flex items-center gap-1 bg-[#18202c] pl-2">
-                      ✓ VERIFIED
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={otpSending || !watchedEmail || !/\S+@\S+\.\S+/.test(watchedEmail)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-[#00f7ff]/20 hover:bg-[#00f7ff]/30 text-[#00f7ff] text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {otpSending ? "SENDING..." : "VERIFY"}
-                    </button>
-                  )}
-                </div>
-                {errors.email && !emailVerified && (
+                <input
+                  type="email"
+                  placeholder="pikachu@example.com"
+                  className={inputCls}
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email" },
+                  })}
+                />
+                {errors.email && (
                   <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
                 )}
               </div>
@@ -342,9 +211,9 @@ export default function Register() {
                   type="password"
                   placeholder="Minimum 8 characters"
                   className={inputCls}
-                  {...register("password", { 
+                  {...register("password", {
                     required: "Password is required",
-                    minLength: { value: 8, message: "Must be at least 8 characters" }
+                    minLength: { value: 8, message: "Must be at least 8 characters" },
                   })}
                 />
                 {errors.password && (
@@ -392,7 +261,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Section 2: Team Members */}
           <div className="p-6 sm:p-8 rounded-xl bg-[#18202c] border border-[#26354a] shadow-[0_8px_30px_rgb(0,0,0,0.45)] space-y-4">
             <div>
               <h2 className="text-lg font-bold tracking-wide text-white flex items-center gap-2">
@@ -436,7 +304,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Section 3: Select Events */}
           <div className="space-y-4">
             <div>
               <h2 className="text-xl font-bold tracking-wide text-neutral-100 flex items-center gap-2">
@@ -459,7 +326,7 @@ export default function Register() {
             ) : (
               <div className="flex flex-wrap gap-3 pt-1">
                 {registrableEvents.map((ev) => {
-                  const eventVal = ev._id || ev.slug; // Fallback to slug if _id is missing
+                  const eventVal = ev._id || ev.slug;
                   const isChecked = selectedEventIds.includes(eventVal);
 
                   return (
@@ -491,8 +358,7 @@ export default function Register() {
             )}
           </div>
 
-          {/* Section 4: Payment (Hidden for NITW students) */}
-          {!isNitwEmail(watchedEmail) && (
+          {!isNitw && (
             <section aria-labelledby="payment-heading" className="rounded-2xl border border-cyan-400/25 bg-[#18202c] shadow-[0_8px_30px_rgb(0,0,0,0.45)] p-6 sm:p-8 space-y-6">
               <div className="space-y-2">
                 <h2 id="payment-heading" className="text-xl font-bold text-white">Payment &amp; Proof</h2>
@@ -517,6 +383,7 @@ export default function Register() {
                     <p className="text-xs text-neutral-400 pt-1">
                       {total > 0 ? "Use this amount for your bank transfer." : "Select your events above to calculate the fee before paying."}
                     </p>
+                    <p className="text-xs text-neutral-400">Accommodation as per standard rates</p>
                   </div>
 
                   {mode === "gate" && (
@@ -556,45 +423,44 @@ export default function Register() {
                 </div>
               </div>
 
-                <div className="border-t border-[#26354a] pt-6 space-y-3">
-                  <label htmlFor="payment-screenshot" className="block text-sm font-bold text-cyan-300">2. Upload payment screenshot</label>
-                  <p id="payment-screenshot-help" className="text-xs text-neutral-300">After the transfer succeeds, upload a clear screenshot showing the amount and transaction reference.</p>
-                  <label htmlFor="payment-screenshot" className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b] transition-colors focus-within:ring-2 focus-within:ring-cyan-300 ${paymentFile?.[0] ? "border-cyan-400" : "border-[#395563] hover:border-cyan-400"}`}>
-                    <input
-                      id="payment-screenshot"
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      aria-describedby="payment-screenshot-help payment-screenshot-error"
-                      aria-invalid={Boolean(errors.paymentScreenshot)}
-                      className="sr-only"
-                      {...register("paymentScreenshot", {
-                        required: total > 0 ? "Payment screenshot is required" : false,
-                        validate: {
-                          size: (files) => !files?.[0] || files[0].size <= 5 * 1024 * 1024 || "Screenshot must be 5 MB or smaller",
-                          type: (files) => !files?.[0] || ["image/jpeg", "image/png"].includes(files[0].type) || "Upload a JPG or PNG screenshot",
-                        },
-                      })}
-                    />
-                    <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <span className="text-sm font-medium text-neutral-300">
-                      {paymentFile?.[0]?.name ? (
-                        <span className="text-cyan-300 font-mono break-all">{paymentFile[0].name}</span>
-                      ) : (
-                        "Choose payment screenshot"
-                      )}
-                    </span>
-                    <span className="text-xs text-neutral-400 mt-2">{paymentFile?.[0] ? "Click to replace · JPG / PNG · Up to 5 MB" : "JPG / PNG · Up to 5 MB"}</span>
-                  </label>
-                  {errors.paymentScreenshot && (
-                    <p id="payment-screenshot-error" role="alert" className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
-                  )}
-                </div>
+              <div className="border-t border-[#26354a] pt-6 space-y-3">
+                <label htmlFor="payment-screenshot" className="block text-sm font-bold text-cyan-300">2. Upload payment screenshot</label>
+                <p id="payment-screenshot-help" className="text-xs text-neutral-300">After the transfer succeeds, upload a clear screenshot showing the amount and transaction reference.</p>
+                <label htmlFor="payment-screenshot" className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#0e131b] transition-colors focus-within:ring-2 focus-within:ring-cyan-300 ${paymentFile?.[0] ? "border-cyan-400" : "border-[#395563] hover:border-cyan-400"}`}>
+                  <input
+                    id="payment-screenshot"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    aria-describedby="payment-screenshot-help payment-screenshot-error"
+                    aria-invalid={Boolean(errors.paymentScreenshot)}
+                    className="sr-only"
+                    {...register("paymentScreenshot", {
+                      required: total > 0 ? "Payment screenshot is required" : false,
+                      validate: {
+                        size: (files) => !files?.[0] || files[0].size <= 5 * 1024 * 1024 || "Screenshot must be 5 MB or smaller",
+                        type: (files) => !files?.[0] || ["image/jpeg", "image/png"].includes(files[0].type) || "Upload a JPG or PNG screenshot",
+                      },
+                    })}
+                  />
+                  <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span className="text-sm font-medium text-neutral-300">
+                    {paymentFile?.[0]?.name ? (
+                      <span className="text-cyan-300 font-mono break-all">{paymentFile[0].name}</span>
+                    ) : (
+                      "Choose payment screenshot"
+                    )}
+                  </span>
+                  <span className="text-xs text-neutral-400 mt-2">{paymentFile?.[0] ? "Click to replace · JPG / PNG · Up to 5 MB" : "JPG / PNG · Up to 5 MB"}</span>
+                </label>
+                {errors.paymentScreenshot && (
+                  <p id="payment-screenshot-error" role="alert" className="text-red-400 text-xs mt-1.5">{errors.paymentScreenshot.message}</p>
+                )}
+              </div>
             </section>
           )}
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting || authLoading || selectedEventIds.length === 0}
