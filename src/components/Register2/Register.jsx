@@ -51,7 +51,7 @@ export default function Register() {
     const others = [];
 
     registrableEvents.forEach((e) => {
-      const typeStr = (e.eventType || e.type || "").toLowerCase();
+      const typeStr = (e.eventType || e["Event Type"] || e.type || "").toLowerCase();
       if (typeStr.includes("competition")) {
         competitions.push(e);
       } else {
@@ -67,7 +67,7 @@ export default function Register() {
     const uncategorized = [];
 
     otherEvents.forEach((e) => {
-      const typeStr = (e.eventType || e.type || "").toLowerCase();
+      const typeStr = (e.eventType || e["Event Type"] || e.type || "").toLowerCase();
       const group = groups.find((g) => typeStr.includes(g.key));
       if (group) group.events.push(e);
       else uncategorized.push(e);
@@ -122,7 +122,7 @@ export default function Register() {
     const comps = registrableEvents.filter(
       (e) =>
         selectedEventIds.includes(e._id || e.slug) &&
-        (e.eventType || e.type || "").toLowerCase().includes("competition")
+        (e.eventType || e["Event Type"] || e.type || "").toLowerCase().includes("competition")
     ).length;
 
     // Fully NITW team or nothing selected: nothing to pay
