@@ -75,6 +75,9 @@ const AuthProvider = ({ children }) => {
   setLoading(true);
   let requestStage = "registration";
   try {
+    const teamMembers = Array.isArray(registrationData.teamMembers) ? registrationData.teamMembers : [];
+    const requiresPayment = !isNitwEmail(registrationData.email) || teamMembers.some((member) => member && member.studentType !== 'nitw');
+
     if (isNitwEmail(registrationData.email) && !isValidNitwRollNumber(registrationData.rollNumber)) {
       notify('Please enter your NITW roll number.', { variant: 'error' });
       return { ok: false, message: 'Please enter your NITW roll number.' };
@@ -124,16 +127,16 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
       return { ok: false, message: 'Please enter a valid email address.' };
     }
-    if (!isNitwEmail(registrationData.email)) {
+    if (requiresPayment) {
       if (registrationData.paymentScreenshot) {
         const paymentFile = Array.isArray(registrationData.paymentScreenshot)
           ? registrationData.paymentScreenshot[0]
           : registrationData.paymentScreenshot;
         paymentScreenshotUrl = await uploadToCloudinary(paymentFile, "Payment screenshot");
       } else {
-        notify('Please upload a payment screenshot for non-nitw emails.', { variant: 'error' })
+        notify('A valid payment screenshot upload is required when any team member is not from NITW.', { variant: 'error' })
         setLoading(false);
-        return { ok: false, message: 'Please upload a payment screenshot for non-NITW emails.' };
+        return { ok: false, message: 'A valid payment screenshot upload is required when any team member is not from NITW.' };
       }
     }
     

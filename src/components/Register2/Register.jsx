@@ -69,7 +69,8 @@ export default function Register() {
   const paymentFile = watch("paymentScreenshot");
   const needAccommodation = watch("needAccommodation") || false;
   const watchedEmail = watch("email") || "";
-  const watchedMembers = useMemo(() => watch("members") || [], [watch]);
+  const watchedMembersRaw = watch("members");
+  const watchedMembers = useMemo(() => watchedMembersRaw || [], [watchedMembersRaw]);
   const isNitw = isNitwEmail(watchedEmail);
 
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
@@ -112,6 +113,13 @@ export default function Register() {
     return { total: 0, mode: null, competitionCount: 0 };
   }, [gateMemberCount, selectedEventIds, registrableEvents]);
 
+  const requiresPayment = total > 0;
+  const allMembersAreNitw = useMemo(() => {
+    const leadNitw = isNitw;
+    const teammatesNitw = (watchedMembers || []).every((member) => !member || !member.name || member.studentType === "nitw");
+    return leadNitw && teammatesNitw;
+  }, [isNitw, watchedMembers]);
+
   // ── Modal state ──────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(true);
   const [step, setStep] = useState(0);
@@ -124,7 +132,7 @@ export default function Register() {
     { id: 1, label: "Your team" },
     { id: 2, label: "Your events" },
     { id: 3, label: "Identity proof" },
-    ...(!isNitw ? [{ id: 4, label: "Payment" }] : []),
+    { id: 4, label: "Payment" },
     { id: 5, label: "Review & submit" },
   ];
   const currentIndex = steps.findIndex(item => item.id === step);
@@ -182,13 +190,18 @@ export default function Register() {
     if (busy) return;
     const fields = step === 0
       ? ["name", "gender", "email", "password", "college", ...(isNitw ? ["rollNumber"] : [])]
-      : step === 1 ? watchedMembers.flatMap((member, index) => [`members.${index}.name`, ...(member.studentType === "nitw" ? [`members.${index}.rollNumber`] : [])])
+      : step === 1 ? watchedMembers.flatMap((member, index) => {
+          const memberType = watch(`members.${index}.studentType`) || member?.studentType || "external";
+          return [`members.${index}.name`, ...(memberType === "nitw" ? [`members.${index}.rollNumber`] : [])];
+        })
       : step === 2 ? ["events"] : step === 3 ? ["collegeId"] : ["paymentScreenshot"];
     if (!await trigger(fields, { shouldFocus: true })) { setStepError("Check the required details before continuing."); return; }
-    goTo(steps[currentIndex + 1].id);
+
+    const nextTarget = step === 3 && requiresPayment ? 4 : step === 3 && !requiresPayment ? 5 : step === 4 ? 5 : steps[currentIndex + 1]?.id;
+    goTo(nextTarget);
   };
   const onInvalid = invalid => {
-    const target = ["name", "gender", "email", "password", "college", "rollNumber"].some(field => invalid[field]) ? 0 : invalid.members ? 1 : invalid.events ? 2 : invalid.collegeId ? 3 : 4;
+    const target = ["name", "gender", "email", "password", "college", "rollNumber"].some(field => invalid[field]) ? 0 : invalid.members ? 1 : invalid.events ? 2 : invalid.collegeId ? 3 : invalid.paymentScreenshot ? 4 : 5;
     setStep(target);
     setStepError("Check the highlighted details before submitting.");
   };
@@ -375,34 +388,38 @@ export default function Register() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              {Array.from({ length: TEAM_SIZE - 1 }).map((_, i) => (
-                <div key={i}>
-                  <label className="block text-xs font-sans uppercase tracking-wider text-ui-muted mb-1">
-                    Member #{i + 2}
-                  </label>
-                  <input
-                    placeholder="Name"
-                    className={inputCls}
-                    aria-label={`Member ${i + 2} name`}
-                    {...register(`members.${i}.name`, { required: "Member name is required" })}
-                  />
-                  {errors.members?.[i]?.name && (
-                    <p className="text-red-400 text-xs mt-1.5">{errors.members[i].name.message}</p>
-                  )}
-                  <label htmlFor={`member-${i}-institution`} className={`${labelCls} mt-4`}>Institution</label>
-                  <select id={`member-${i}-institution`} className={inputCls} {...register(`members.${i}.studentType`)}>
-                    <option value="external">Other institution</option>
-                    <option value="nitw">NITW student</option>
-                  </select>
-                  {watchedMembers[i]?.studentType === "nitw" ? (
-                    <div className="mt-4">
-                      <label htmlFor={`member-${i}-roll`} className={labelCls}>NITW Roll Number</label>
-                      <input id={`member-${i}-roll`} type="text" placeholder="Roll number" className={inputCls} {...register(`members.${i}.rollNumber`, rollNumberRules)} />
-                      {errors.members?.[i]?.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.members[i].rollNumber.message}</p>}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+              {Array.from({ length: TEAM_SIZE - 1 }).map((_, i) => {
+                const memberStudentType = watch(`members.${i}.studentType`) || "external";
+
+                return (
+                  <div key={i}>
+                    <label className="block text-xs font-sans uppercase tracking-wider text-ui-muted mb-1">
+                      Member #{i + 2}
+                    </label>
+                    <input
+                      placeholder="Name"
+                      className={inputCls}
+                      aria-label={`Member ${i + 2} name`}
+                      {...register(`members.${i}.name`, { required: "Member name is required" })}
+                    />
+                    {errors.members?.[i]?.name && (
+                      <p className="text-red-400 text-xs mt-1.5">{errors.members[i].name.message}</p>
+                    )}
+                    <label htmlFor={`member-${i}-institution`} className={`${labelCls} mt-4`}>Institution</label>
+                    <select id={`member-${i}-institution`} className={inputCls} {...register(`members.${i}.studentType`)}>
+                      <option value="external">Other institution</option>
+                      <option value="nitw">NITW student</option>
+                    </select>
+                    {memberStudentType === "nitw" ? (
+                      <div className="mt-4">
+                        <label htmlFor={`member-${i}-roll`} className={labelCls}>NITW Roll Number</label>
+                        <input id={`member-${i}-roll`} type="text" placeholder="Roll number" className={inputCls} {...register(`members.${i}.rollNumber`, rollNumberRules)} />
+                        {errors.members?.[i]?.rollNumber && <p className="text-red-400 text-xs mt-1.5">{errors.members[i].rollNumber.message}</p>}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -464,8 +481,7 @@ export default function Register() {
           </section>
 
           {/* Section 4: Payment (Hidden for NITW students) */}
-          {!isNitwEmail(watchedEmail) && (
-            <section hidden={step !== 4} className="registration-step space-y-6">
+          <section hidden={step !== 4 || !requiresPayment} className="registration-step space-y-6">
               <div className="space-y-2">
                 <p className="text-sm text-ui-muted">Transfer your registration fee to the account below, then attach the payment screenshot.</p>
               </div>
@@ -561,14 +577,12 @@ export default function Register() {
                   )}
                 </div>
             </section>
-          )}
-
 
             <section hidden={step !== 5} className="registration-step registration-review">
               <div className="registration-review-block"><div className="registration-review-label"><h3>Team lead</h3><button type="button" onClick={() => goTo(0)}>Edit details</button></div><p>{reviewName}</p><p>{watchedEmail}</p><p>{reviewCollege}</p>{isNitw && <p className="text-ui-muted">Roll number: {normalizeRollNumber(watch("rollNumber"))}</p>}<p className="text-ui-muted">Accommodation: {needAccommodation ? "Yes" : "No"}</p></div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Your teammates</h3><button type="button" onClick={() => goTo(1)}>Edit team</button></div>{watchedMembers.map((member, index) => <p key={index}>{member.name} <span className="text-ui-muted">/ {member.studentType === "nitw" ? `NITW · ${normalizeRollNumber(member.rollNumber)}` : "Other institution"}</span></p>)}</div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Selected events</h3><button type="button" onClick={() => goTo(2)}>Edit events</button></div>{registrableEvents.filter(event => selectedEventIds.includes(event._id || event.slug)).map(event => <p key={event._id || event.slug}>{event.name}</p>)}</div>
-              <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{isNitw ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{allMembersAreNitw ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
             </section>
           </div>
           <footer className="registration-modal-footer">

@@ -3,23 +3,22 @@ export function getChargeableGateMembers({
   members = [],
   teamSize = 4,
 } = {}) {
-  const namedMembers = Array.isArray(members)
-    ? members.filter(
-        (member) => member && typeof member.name === "string" && member.name.trim()
-      )
-    : [];
+  const chargeableParticipants = [];
 
-  const participants = [
-    ...(isNitwLead ? [] : [{ name: "lead", studentType: "external" }]),
-    ...namedMembers,
-  ];
+  if (!isNitwLead) {
+    chargeableParticipants.push({ name: "lead", studentType: "external" });
+  }
 
-  const nitwCount = participants.filter(
-    (participant) => participant && participant.studentType === "nitw"
-  ).length;
+  const validMembers = Array.isArray(members) ? members : [];
+  validMembers.forEach((member) => {
+    if (!member || typeof member !== "object") return;
+    const name = typeof member.name === "string" ? member.name.trim() : "";
+    if (!name) return;
+    if (member.studentType === "nitw") return;
+    chargeableParticipants.push(member);
+  });
 
-  const actualParticipantCount = Math.min(participants.length, teamSize);
-  return Math.max(0, actualParticipantCount - nitwCount);
+  return Math.min(chargeableParticipants.length, teamSize);
 }
 
 export function groupRegistrationEvents(events = []) {
