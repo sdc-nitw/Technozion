@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { ScrollTrigger } from '../animation/gsap';
+import { scrollToPosition } from '../animation/SmoothScroll';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { About } from '../components/About';
 import EventsPage from '../components/Events/EventsPage';
@@ -12,10 +14,34 @@ import RegistrationReceipt from '../components/Register2/RegistrationReceipt.jsx
 import VerifyEmail from "../components/Login/VerifyEmail";
 
 const RoutesManager = () => {
-	const { pathname } = useLocation();
+	const { pathname, hash } = useLocation();
 	useEffect(() => {
-		window.scrollTo(0, 0);
-	}, [pathname]);
+    if (!hash) { scrollToPosition(0, { immediate: true }); return; }
+    let frame;
+    let disposed = false;
+    let observer;
+    let targetId;
+    try { targetId = decodeURIComponent(hash.slice(1)); } catch { return; }
+    const align = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const target = document.getElementById(targetId);
+        if (!disposed && target && !target.closest('[aria-busy="true"]')) {
+          observer?.disconnect();
+          frame = requestAnimationFrame(() => {
+            if (disposed) return;
+            ScrollTrigger.refresh();
+            const top = target.getBoundingClientRect().top + window.scrollY - 100;
+            scrollToPosition(top, { immediate: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+          });
+        }
+      });
+    };
+    observer = new MutationObserver(align);
+    observer.observe(document.getElementById("root"), { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
+    align();
+    return () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); };
+  }, [pathname, hash]);
 
 	return (
 		<Routes>

@@ -5,6 +5,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        "ui-bg": "var(--color-bg)",
+        "ui-surface": "var(--color-surface)",
+        "ui-input": "var(--color-input)",
+        "ui-border": "var(--color-border)",
+        "ui-muted": "var(--color-muted)",
+        "ui-accent": "var(--color-accent)",
         black: "#0a0a0a",
         darkGray: "#121212",
         gray: "#1e1e1e",
@@ -16,6 +22,8 @@ module.exports = {
         accent: "#00e0e0",
       },
       fontFamily: {
+        sans: ["Golos Text", "system-ui", "sans-serif"],
+        brand: ["Aftersick", "Golos Text", "sans-serif"],
         oswald: ["Oswald", "sans-serif"],
         mont: ["Montserrat", "sans-serif"],
         futura: ["Futura", "sans-serif"],

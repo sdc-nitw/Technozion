@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./card.css";
-import { WebCanvas } from "../bg_animation/bg_animate";
 import fallbackImg from "./tzcomingsoon.png";
 import PosterSkeleton from "../Skeleton/PosterSkeleton";
 import { IoMdArrowRoundBack } from "react-icons/io";
@@ -98,9 +97,6 @@ const Card = () => {
   
     return (
     <div className="card-container" onClick={handleContainerClick}>
-      <div className="web-canvas">
-        <WebCanvas />
-      </div>
 
       <div
         ref={cardRef}
@@ -149,7 +145,7 @@ const Card = () => {
 
             {/* Section 2: Overview */}
             <div className="card-section card-section-overview custom-scrollbar">
-              <div className="font-bold text-2xl lg:text-3xl uppercase tracking-wide text-cyan-300 mb-4">
+              <div className="brand-heading font-bold text-2xl lg:text-3xl text-white mb-4">
                 {title}
               </div>
 
@@ -302,7 +298,7 @@ const Card = () => {
 
               {judgingCriteria && judgingCriteria !== "Coming Soon..." && (
                 <div className="mt-6">
-                  <div className="font-bold text-lg uppercase tracking-wide text-cyan-300 mb-2">
+                  <div className="brand-heading text-lg text-white mb-2">
                     Judging Criteria
                   </div>
                   <div className="p-3.5 rounded-lg bg-black/40 border border-cyan-500/20 text-sm lg:text-[0.95rem] leading-relaxed">

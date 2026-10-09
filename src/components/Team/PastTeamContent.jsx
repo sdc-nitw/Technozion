@@ -17,7 +17,7 @@ export const TeamContent = () => {
     }, []);
 
   return (
-    <div className="list">
+    <div className="team-list">
       <section className="flex flex-col items-center justify-center mb-10">
         <h1 className="lg:text-5xl sm:text-4xl text-3xl uppercase font-bold">Chief Patron</h1>
         {data?.chief_patrons?.map((member, index) => (
@@ -69,7 +69,7 @@ export const Team = () => {
       <div className="web-canvas">
         <WebCanvas />
       </div>
-      <img src={Teams} alt="teams" className='mainteams lg:mt-36 mt-24 lg:scale-100 scale-90 sm:mt-28'/>
+      <img src={Teams} alt="teams" className='mainteams'/>
       <TeamContent />
     </div>
   );
