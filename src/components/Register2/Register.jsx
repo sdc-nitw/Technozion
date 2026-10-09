@@ -5,7 +5,7 @@ import EventsLoading from "../Events/EventsLoading";
 import "./registration-modal.css";
 import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
-import { getChargeableGateMembers, groupRegistrationEvents } from "./feeUtils";
+import { getChargeableGateMembers, groupRegistrationEvents, normalizeStudentType } from "./feeUtils";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
 const TEAM_SIZE = 4; // fixed team size
@@ -116,7 +116,10 @@ export default function Register() {
   const requiresPayment = total > 0;
   const allMembersAreNitw = useMemo(() => {
     const leadNitw = isNitw;
-    const teammatesNitw = (watchedMembers || []).every((member) => !member || !member.name || member.studentType === "nitw");
+    const teammatesNitw = (watchedMembers || []).every((member) => {
+      if (!member || !member.name) return true;
+      return normalizeStudentType(member.studentType) === "nitw";
+    });
     return leadNitw && teammatesNitw;
   }, [isNitw, watchedMembers]);
 
@@ -156,8 +159,8 @@ export default function Register() {
       needAccommodation: !!data.needAccommodation,
       teamMembers: (data.members || []).map((member) => ({
         name: member.name,
-        studentType: member.studentType,
-        rollNumber: member.studentType === "nitw" ? normalizeRollNumber(member.rollNumber) : undefined,
+        studentType: normalizeStudentType(member.studentType),
+        rollNumber: normalizeStudentType(member.studentType) === "nitw" ? normalizeRollNumber(member.rollNumber) : undefined,
       })),
       events: data.events || [],
       registrationType: data.events?.length > 0 ? (data.members?.length > 0 ? "team" : "individual") : "individual",

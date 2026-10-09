@@ -4,6 +4,7 @@ import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
 import {API_URL} from '../config'
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from '../components/utils/registrationChecks'
+import { getChargeableGateMembers, normalizeStudentType } from '../components/Register2/feeUtils'
 
 const AuthContext = createContext()
 export const useAuth = () => useContext(AuthContext)
@@ -75,10 +76,19 @@ const AuthProvider = ({ children }) => {
   setLoading(true);
   let requestStage = "registration";
   try {
-    const teamMembers = Array.isArray(registrationData.teamMembers) ? registrationData.teamMembers : [];
-    const requiresPayment = !isNitwEmail(registrationData.email) || teamMembers.some((member) => member && member.studentType !== 'nitw');
+    const emailIsNitw = isNitwEmail(registrationData.email);
+    const teamMembers = Array.isArray(registrationData.teamMembers) ? registrationData.teamMembers.map((member) => ({
+      ...member,
+      studentType: normalizeStudentType(member?.studentType),
+      rollNumber: normalizeStudentType(member?.studentType) === 'nitw' ? normalizeRollNumber(member?.rollNumber) : undefined,
+    })) : [];
+    const requiresPayment = !emailIsNitw || getChargeableGateMembers({
+      isNitwLead: emailIsNitw,
+      members: teamMembers,
+      teamSize: 4,
+    }) > 0;
 
-    if (isNitwEmail(registrationData.email) && !isValidNitwRollNumber(registrationData.rollNumber)) {
+    if (emailIsNitw && !isValidNitwRollNumber(registrationData.rollNumber)) {
       notify('Please enter your NITW roll number.', { variant: 'error' });
       return { ok: false, message: 'Please enter your NITW roll number.' };
     }
@@ -145,14 +155,18 @@ const AuthProvider = ({ children }) => {
     const payload = {
       name: registrationData.name || "",
       email: registrationData.email || "",
-      rollNumber: isNitwEmail(registrationData.email) ? normalizeRollNumber(registrationData.rollNumber) : undefined,
+      rollNumber: emailIsNitw ? normalizeRollNumber(registrationData.rollNumber) : undefined,
       password: registrationData.password || "",
       collegeName: registrationData.collegeName || "",
       accommodation: !!(registrationData.accommodation ?? registrationData.needAccommodation ?? registrationData.needAccomodation),
       needAccommodation: !!(registrationData.needAccommodation ?? registrationData.accommodation ?? registrationData.needAccomodation),
       needAccomodation: !!(registrationData.needAccomodation ?? registrationData.needAccommodation ?? registrationData.accommodation),
       events: registrationData.events || [],
-      teamMembers: registrationData.registrationType === "team" ? (registrationData.teamMembers || []) : [],
+      teamMembers: registrationData.registrationType === "team" ? teamMembers.map((member) => ({
+        name: member?.name || "",
+        studentType: normalizeStudentType(member?.studentType),
+        rollNumber: normalizeStudentType(member?.studentType) === 'nitw' ? normalizeRollNumber(member?.rollNumber) : undefined,
+      })) : [],
       registrationType: registrationData.registrationType,
       idDocumentUrl,
       paymentScreenshotUrl,
