@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { ScrollTrigger } from '../animation/gsap';
-import { scrollToPosition } from '../animation/SmoothScroll';
+import { gsap, ScrollTrigger } from '../animation/gsap';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { About } from '../components/About';
 import EventsPage from '../components/Events/EventsPage';
@@ -16,8 +15,9 @@ import VerifyEmail from "../components/Login/VerifyEmail";
 const RoutesManager = () => {
 	const { pathname, hash } = useLocation();
 	useEffect(() => {
-    if (!hash) { scrollToPosition(0, { immediate: true }); return; }
+    if (!hash) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); return; }
     let frame;
+    let scrollTween;
     let disposed = false;
     let observer;
     let targetId;
@@ -32,7 +32,11 @@ const RoutesManager = () => {
             if (disposed) return;
             ScrollTrigger.refresh();
             const top = target.getBoundingClientRect().top + window.scrollY - 100;
-            scrollToPosition(top, { immediate: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+              window.scrollTo({ top, behavior: "instant" });
+            } else {
+              scrollTween = gsap.to(window, { scrollTo: { y: top, autoKill: true }, duration: .7, ease: "power2.inOut", overwrite: "auto" });
+            }
           });
         }
       });
@@ -40,7 +44,7 @@ const RoutesManager = () => {
     observer = new MutationObserver(align);
     observer.observe(document.getElementById("root"), { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
     align();
-    return () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); };
+    return () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); scrollTween?.kill(); };
   }, [pathname, hash]);
 
 	return (

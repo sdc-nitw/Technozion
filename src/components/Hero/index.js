@@ -75,7 +75,7 @@ export default function Hero() {
         gsap.to(".hero-core", { y: -25, ease: "none", scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true } });
         return;
       }
-      gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: { trigger: ".hero-pin", pin: true, start: "top top", end: () => "+=" + window.innerHeight, scrub: true, invalidateOnRefresh: true, anticipatePin: 1 } })
+      gsap.timeline({ scrollTrigger: { trigger: ".hero-pin", pin: true, start: "top top", end: () => "+=" + window.innerHeight, scrub: .85, invalidateOnRefresh: true, anticipatePin: 1 } })
         .to(".hero-core", { y: -100, scale: 1.08, duration: 1 }, 0)
         .to(".core-assembly", { rotationY: -12, rotationX: -18, duration: 1 }, 0)
         .to(".hero-brand-reveal", { xPercent: -9, scale: 1.12, duration: 1 }, 0)

@@ -12,33 +12,13 @@ export const motionConditions = {
   reduce: "(prefers-reduced-motion: reduce)",
 };
 
-let measurementTimer;
-let waitingForScroll = false;
-const refreshMeasurements = () => {
-  if (ScrollTrigger.isScrolling()) {
-    if (!waitingForScroll) {
-      waitingForScroll = true;
-      ScrollTrigger.addEventListener("scrollEnd", refreshMeasurements);
-    }
-    return;
-  }
-  ScrollTrigger.removeEventListener("scrollEnd", refreshMeasurements);
-  waitingForScroll = false;
-  const focused = document.activeElement;
-  ScrollTrigger.refresh();
-  // Pin refreshes temporarily reparent scenes; retain keyboard focus on their links.
-  if (focused && focused !== document.body && focused.isConnected && document.activeElement !== focused) {
-    focused.focus({ preventScroll: true });
-  }
-};
-
 export function observeSceneMeasurements(element) {
   let disposed = false;
+  let frame;
   const refresh = () => {
     if (disposed) return;
-    // Coalesce poster/font loads across scenes, and avoid repinning mid-gesture.
-    clearTimeout(measurementTimer);
-    measurementTimer = setTimeout(refreshMeasurements, 100);
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => { if (!disposed) ScrollTrigger.refresh(); });
   };
   const images = [...element.querySelectorAll("img")];
   images.forEach(image => {
@@ -49,6 +29,7 @@ export function observeSceneMeasurements(element) {
   refresh();
   return () => {
     disposed = true;
+    cancelAnimationFrame(frame);
     images.forEach(image => {
       image.removeEventListener("load", refresh);
       image.removeEventListener("error", refresh);
