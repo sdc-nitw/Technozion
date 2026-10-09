@@ -1,22 +1,15 @@
 import React from "react";
 import "./poster.css"; // Assuming you have some styles for Poster
-import { useDepthSurface } from "../ui/DepthSurface";
 import PosterSkeleton from "../Skeleton/PosterSkeleton";
 
 const Poster = ({ imageSrc, fallbackSrc, title, content, footer, onClick }) => {
-  const depth = useDepthSurface();
   const handleError = (e) => {
     e.target.onerror = null;
     if (fallbackSrc) e.target.src = fallbackSrc;
   };
 
   return (
-    <div {...depth} className="poster depth-surface flex flex-col" onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} aria-label={onClick ? `View ${title}` : undefined} onKeyDown={(event) => {
-      if (onClick && (event.key === "Enter" || event.key === " ")) {
-        event.preventDefault();
-        onClick();
-      }
-    }}>
+    <div className="poster flex flex-col" onClick={onClick}>
       <div className="relative">
         <PosterSkeleton
           src={imageSrc}

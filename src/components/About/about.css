@@ -1,126 +1,344 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+*{
+  font-family: "Raleway", sans-serif !important;
+    font-optical-sizing: auto !important;
+    font-style: normal !important;
+}
+/* Responsive Text and Images */
+h1 {
+  font-size: 2rem;
+  margin: 20px 0;
+}
+
+/* Gradient Background */
+.t-b-grad {
+  background: linear-gradient(
+    to bottom,
+    #232754 0%,
+    #020928 50%,
+    #283994 60%,
+    #283994 100%
+  );
+}
+
+/* Body and Container Styles */
+html,
+body {
+  margin: 0; /* Remove default body margin */
+}
 .about-page {
-  position: relative;
+  min-height: 100vh;
   width: 100%;
-}
-
-.about-container {
+  overflow-x: hidden;
   position: relative;
-  max-width: var(--page-width);
-  margin: 0 auto;
-  padding: calc(var(--header-height) + 40px) 24px 64px;
 }
-
-.about-intro {
-  max-width: 850px;
-  margin: 0 auto;
-  padding: clamp(24px, 5vw, 48px);
-}
-
-.about-intro h1 {
-  margin: 0 0 24px;
-}
-
-.theme-content {
-  color: var(--color-muted);
-  font-size: 1rem;
-  line-height: 1.85;
-}
-
-.youtube-links {
+/* Card Container Styles */
+.about-container {
+  padding: 20px; 
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  z-index: 2;
+}
+
+.border {
+  position: relative; /* Set relative positioning for pseudo-element */
+  box-sizing: border-box; /* Include padding in width calculations */
+  border: none; /* Remove borders */
+  border-radius: 5px; /* Round corners for a softer look */
+  /* padding-bottom: 5px;  */
+  overflow: hidden; /* Ensure inner content doesn't overflow */
+
+}
+.youtube-links {
+margin: auto;
+  
+  display: flex; 
+  flex-direction: row;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 24px auto 0;
+  align-items: center;
+  gap: 150px; /* Adjusted gap for spacing between links */
+width: 100%;
+  
+  border-radius: 5px;
+  padding: 10px;
+  z-index: 4;
+}
+@media (max-width:1600px){
+  .youtube-links{
+    left:30%;
+    bottom: 10%;
+  }
+}
+@media (max-width:1359px){
+  .youtube-links{
+    left:25%;
+    bottom: 27%;
+  }
 }
 
 .youtube-link {
-  display: inline-flex;
+  width: fit-content;
+  height: fit-content;
+  padding: 15px;
+  border-radius: 5px;
+
+  display: flex;
   align-items: center;
-  gap: 10px;
+  cursor: pointer;
+
+  color: white;
+  position: relative;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1),
+      inset 0 0 15px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 1s ease;
 }
+
 
 .youtube-icon {
-  width: 24px;
-  height: auto;
+  width: 30px; /* Increased width for better visibility */
+  height: auto; /* Keep aspect ratio */
 }
 
-.brochure-section {
-  margin: 64px auto 0;
-  max-width: 100%;
+
+
+/* Keyframes for the moving glow effect */
+@keyframes glow {
+  0% {
+    transform: translateX(-100%); /* Start off-screen to the left */
+  }
+  100% {
+    transform: translateX(100%); /* Move off-screen to the right */
+  }
 }
 
-.brochure-title {
-  text-align: center;
-  margin-bottom: 24px;
+.main-container {
+  margin-top: 6.75rem;
 }
 
-.brochure-title h2 {
-  margin: 0;
-}
-
-.brochure-frame {
+/* Card Styles */
+.about-card {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid transparent; /* Set initial border to transparent */
+  border-radius: 0; /* Remove rounded corners */
+  box-shadow: 0px 4px 16px rgba(0, 255, 255, 0.3); /* Glowing shadow for a tech feel */
   overflow: hidden;
-}
-
-.brochure-fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 3000;
-  background: var(--color-bg);
-  padding: 16px;
   display: flex;
-  flex-direction: column;
-}
-
-.brochure-toolbar {
-  display: flex;
-  flex-wrap: wrap;
+  flex-direction: column; /* Default to column for mobile */
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.brochure-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-muted);
-  font-size: .8rem;
-  font-weight: 600;
-}
-
-.brochure-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.brochure-viewport {
-  height: min(75vh, 780px);
-  background: var(--color-input);
-}
-
-.brochure-fullscreen .brochure-viewport {
-  flex: 1;
-  height: auto;
-  min-height: 0;
-}
-
-.brochure-viewport iframe {
-  width: 100%;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out; /* Smooth transitions */
+  margin: 10px 0; 
+  width: 75%; 
+  color: white;
   height: 100%;
-  border: 0;
 }
 
-@media(max-width: 767px) {
-  .about-container {
-    padding: calc(var(--header-height) + 28px) 16px 40px;
+.about-card {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 1); /* Enhanced glowing effect on hover */
+  border-color: #16f6f3; /* Change border color on hover */
+}
+
+
+
+/* Theme Content Styles */
+.theme-content {
+  font-size: 1.2rem;
+  width: 100%;
+  padding: 10px; /* Add padding for spacing */
+  box-sizing: border-box; /* Include padding in width calculations */
+  color: white; /* Change text color on hover */
+  /* height: 100%; */
+}
+
+
+/* adding about us image */
+.about_us {
+  width: 300px;            
+  height: 100px;           
+  background-image: url('about_us.png');  /* Path to your image */
+  background-size: cover; /* Adjust to contain the image */
+  background-position: center; /* Center the image */
+  display: flex;
+  justify-content: center;
+}
+
+/* Mobile Styles */
+
+@media (min-width: 1024px) and (max-width: 1124px){
+  .about-card{
+    width: 85%;
   }
-  .brochure-section {
-    margin-top: 40px;
+} 
+
+
+@media (max-width: 768px) { /* Targeting mobile devices */
+  .about_us{
+    width: 220px;
+    height: 70px;
+  }
+  .about-container {
+    padding: 0;
+  }
+  .about-card {
+    flex-direction: column; /* Stack elements vertically */
+    height: 50vh; /* Adjust height for mobile */
+    width: 100%; /* Wider width for mobile */
+  }
+
+  h1 {
+    font-size: 1.5rem; /* Smaller font size for mobile */
+    margin: 10px 0; /* Adjusted margin for header */
+  }
+
+  .theme-content {
+    font-size: 1.2rem;
+  }
+
+  img {
+    max-width: 100%; /* Make images responsive */
+    height: auto; /* Keep aspect ratio */
+  }
+  
+}
+
+@media (min-width: 450px) and (max-width: 650px){
+  .theme-content{
+    font-size: 0.9rem;
   }
 }
+
+
+@media (max-width: 485px){
+  .theme-content{
+    padding: 0px;
+    font-size: 0.9rem;
+  }
+  .about-card{
+    padding: 10px;
+  
+    
+  }
+ 
+ 
+}
+@media (max-width:450px) {
+  .youtube-links{
+    flex-direction: column;
+    gap:10px;
+    width: 100%;
+   
+ }
+ 
+ .youtube-link{
+  
+   max-height: 8vh;
+   font-size: 0.8rem;
+ }
+  
+}
+
+@media (max-width: 325px){
+  .theme-content{
+    font-size: 0.8rem;
+  }
+  
+}
+
+@media (max-width: 250px){
+  .theme-content{
+    font-size: 0.6rem;
+  }
+  .youtube-links{
+    flex-direction: column;
+    gap:10px;
+  
+   
+ }
+ .youtube-link{
+   width: 50vw;
+   height: 5vh;
+   font-size: 0.5rem;
+ }
+}
+@media (max-height:575px) {
+  .youtube-links{
+    flex-direction: column;
+    gap:10px;
+    
+   
+ }
+ .youtube-link{
+   width: 50vw;
+   height: 2vh;
+   font-size: 0.5rem;
+   gap:5px;
+ 
+ }
+ .youtube-link img{
+    height:3vh;
+    width: 7vw;
+ }
+ 
+ .about-container{
+  margin-top: 5%;
+ 
+  
+ }
+}
+
+/* iPad Styles */
+@media (min-width: 769px) and (max-width: 1024px) { /* Targeting iPad devices */
+  .about-container {
+    padding: 0px;
+  }
+  .about-card {
+    flex-direction: row; /* Align elements in row for iPads */
+    height: 55vh; /* Set height */
+    width: 100%; /* Adjust width for iPads */
+    font-size: 1.2rem;
+  }
+
+  h1 {
+    font-size: 1.8rem; /* Adjust font size for iPads */
+    margin: 15px 0; /* Adjusted margin for header */
+  }
+
+  .theme-content {
+    padding: 0px; /* Add some padding to text */
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) { /* Targeting iPad devices */
+  .theme-content {
+    padding: 0px; /* Add some padding to text */
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 650px) and (max-width: 768px) { /* Targeting iPad devices */
+  .theme-content {
+    padding: 0px; /* Add some padding to text */
+    font-size: 1rem;
+  }
+}
+
+/* Canvas Styles for About Page */
+.about-canvas {
+  position: absolute; /* Position the canvas absolutely */
+  top: 0; /* Align to the top */
+  left: 0; /* Align to the left */
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  z-index: 0; /* Behind content */
+  pointer-events: none; /* Allow interactions through the canvas */
+}
+
+

@@ -1,63 +1,97 @@
+/* src/components/Poster.css */
 .poster {
-  position: relative;
-  width: 100%;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 160ms, transform 160ms;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid #16f6f3;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease;
+  z-index: 5;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 1);
+  overflow: hidden;
 }
 
 .poster:hover {
-  border-color: #547582;
-  transform: translateY(-2px);
+  transform: translateY(-10px);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 1);
+}
+
+.poster-image {
+  flex: 1 1 auto;
+}
+
+.poster h2 {
+  font-size: 1.3em;
+  margin: 15px 0 10px;
+  color: #16f6f3;
 }
 
 .poster h3 {
-  margin: 12px 0 6px;
-  color: var(--color-text);
-  font-size: 1rem;
-  line-height: 1.4;
+  color: #ffffff;
+  font-size: 1em;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.8em;
+  min-height: 2.6em;
 }
 
 .poster p {
-  color: var(--color-muted);
-  font-size: .8rem;
+  color: #16f6f3;
+  font-size: 0.9em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* "View" badge so cards clearly read as clickable */
 .poster-view {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: var(--color-accent);
-  color: #092126;
-  font-size: .7rem;
-  font-weight: 600;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #16f6f3 0%, #00b3ff 100%);
+  color: #031318;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(22, 246, 243, 0.4);
   opacity: 0;
-  transition: opacity 160ms;
+  transform: translateY(-4px);
+  transition: opacity 150ms ease, transform 150ms ease;
   pointer-events: none;
 }
 
-.poster:hover .poster-view, .poster:focus-visible .poster-view {
+.poster:hover .poster-view,
+.poster:focus-within .poster-view {
   opacity: 1;
+  transform: translateY(0);
 }
 
-@media(hover: none) {
+@media (hover: none) {
   .poster-view {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  .poster {
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 1.25em;
+  }
+
+  p {
+    font-size: 0.9em;
   }
 }

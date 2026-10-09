@@ -5,7 +5,6 @@ import { Loader } from "../Loader/index.js";
 import "../event_scroll/index.css";
 import imgsrc from "../event_scroll/tzcomingsoon.png";
 import { legacyToFlat } from "../utils/eventShape";
-import { orderEvents } from "../Events/eventOrder";
 
 const TABS = [
   { key: "clubevents", label: "CLUB" },
@@ -75,9 +74,7 @@ export const EventsBrowser = () => {
 
         const result = await response.json();
         if (!isMounted) return;
-        setData(selectedTab === "societies"
-          ? orderEvents(result.map(society => ({ ...society, events: orderEvents(society.events || []) })))
-          : orderEvents(result.map(item => ({ ...item, club: item.club || item.name }))));
+        setData(result);
       } catch (err) {
         console.error("Error loading data:", err);
         if (!isMounted) return;
@@ -107,7 +104,7 @@ export const EventsBrowser = () => {
         <h2 className="society-heading text-xl md:text-2xl text-cyan-300 font-bold mb-4 tracking-wider uppercase">
           {society.societyName}
         </h2>
-        <div className="events-grid">
+        <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-x-4 gap-y-8 lg:gap-y-10 lg:m-6 m-3">
           {society.events?.map((event, index) => (
             <Poster
               key={`event-${sIdx}-${index}-${event.title || index}`}
@@ -157,7 +154,7 @@ export const EventsBrowser = () => {
         ) : selectedTab === "societies" ? (
           renderSocieties()
         ) : (
-          <div className="events-grid">
+          <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-x-4 gap-y-8 lg:gap-y-10 lg:m-6 m-3">
             {data.map((item, index) => (
               <Poster
                 key={index}

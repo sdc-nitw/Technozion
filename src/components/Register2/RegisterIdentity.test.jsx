@@ -6,14 +6,12 @@ import Register from "./Register";
 import { fetchEvents } from "../Events/eventsData";
 
 jest.mock("../../Context/AuthManager", () => ({ useAuth: () => ({ register: jest.fn(), loading: false }) }));
-jest.mock("../Events/eventsData", () => ({ fetchEvents: jest.fn(), getCachedEvents: () => null }));
+jest.mock("../Events/eventsData", () => ({ fetchEvents: jest.fn() }));
 jest.mock("../bg_animation/bg_animate", () => ({ WebCanvas: () => null }));
 
 let root;
 let container;
 beforeEach(() => {
-  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   global.IS_REACT_ACT_ENVIRONMENT = true;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -34,7 +32,7 @@ const change = async (field, value) => {
   });
 };
 
-test("only a NITW lead sees the roll number field", async () => {
+test("NITW lead sees a roll number field, while outsiders receive a generated ID", async () => {
   await mountRegister();
   expect(container.querySelector('#leader-roll-number')).toBeNull();
   const email = container.querySelector('[name="email"]');
@@ -42,6 +40,7 @@ test("only a NITW lead sees the roll number field", async () => {
   expect(container.querySelector('#leader-roll-number')).not.toBeNull();
   await change(email, "test@example.com");
   expect(container.querySelector('#leader-roll-number')).toBeNull();
+  expect(container.textContent).toContain("Your unique 26TZ… participant ID");
 });
 
 test("each teammate can independently select NITW and supply a roll number", async () => {
@@ -53,5 +52,5 @@ test("each teammate can independently select NITW and supply a roll number", asy
   await change(container.querySelector('#member-0-roll'), "00123456");
   await change(institution, "external");
   expect(container.querySelector('#member-0-roll')).toBeNull();
-  expect(container.querySelectorAll('[aria-label^="Member "][aria-label$=" name"]')).toHaveLength(3);
+  expect(container.querySelectorAll('[aria-label$=" name"]')).toHaveLength(3);
 });

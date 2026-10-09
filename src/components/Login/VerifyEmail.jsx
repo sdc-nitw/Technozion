@@ -35,8 +35,8 @@ const VerifyEmail = () => {
   }, [token]);
 
   return (
-    <div className="ui-page flex flex-col items-center">
-      <div className="ui-panel w-full max-w-md p-6 md:p-8 text-center">
+    <div className="min-h-screen bg-black text-white px-4 pt-28 pb-12 flex flex-col items-center">
+      <div className="w-full max-w-md bg-darkGray rounded-xl p-6 md:p-8 shadow-lg shadow-cyan/10 text-center">
         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-cyan">Email verification</h1>
         {status === "loading" && <p className="text-white/70">Verifying your email…</p>}
         {status !== "loading" && (
@@ -45,7 +45,7 @@ const VerifyEmail = () => {
         {status !== "loading" && (
           <Link
             to="/login"
-            className="ui-button mt-6"
+            className="inline-block mt-6 px-6 py-3 rounded-xl bg-cyan/20 hover:bg-cyan/30 transition font-semibold"
           >
             {status === "success" ? "Go to login" : "Back to login"}
           </Link>
