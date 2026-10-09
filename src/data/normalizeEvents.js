@@ -61,10 +61,15 @@ function normalizeEvent(raw, index = 0) {
   );
   const email = clean(raw["Email Address"] || raw.email);
   const rawType = clean(raw["Event Type"] || raw.eventType || raw.event_type || raw.type || raw.category);
-  
+
+  // Special-case events whose business category differs from the raw data label.
+  const normalizedName = clean(name).toLowerCase();
+  const isWarangalTradingRing = normalizedName === "warangal trading ring 2.0";
+
   // Standardize eventType to match UI filter expectations (e.g. "Competition", "Game", "Demonstration")
   let eventType = rawType;
-  if (/competition/i.test(rawType)) eventType = "Competition";
+  if (isWarangalTradingRing) eventType = "Game";
+  else if (/competition/i.test(rawType)) eventType = "Competition";
   else if (/game/i.test(rawType)) eventType = "Game";
   else if (/demonstration/i.test(rawType)) eventType = "Demonstration";
 
