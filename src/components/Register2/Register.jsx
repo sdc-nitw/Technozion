@@ -5,6 +5,7 @@ import EventsLoading from "../Events/EventsLoading";
 import "./registration-modal.css";
 import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
+import { getChargeableGateMembers, groupRegistrationEvents } from "./feeUtils";
 
 // ─── Fee constants ────────────────────────────────────────────────────────────
 const TEAM_SIZE = 4; // fixed team size
@@ -48,6 +49,7 @@ export default function Register() {
   } = useForm({
     shouldFocusError: false,
     defaultValues: {
+      accommodation: false,
       events: [],
       members: Array.from({ length: TEAM_SIZE - 1 }, () => ({ name: "", studentType: "external", rollNumber: "" })),
     },
@@ -59,15 +61,29 @@ export default function Register() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(rawSelectedEvents)]
   );
+  const groupedRegistrableEvents = useMemo(
+    () => groupRegistrationEvents(registrableEvents),
+    [registrableEvents]
+  );
   const collegeIdFile = watch("collegeId");
   const paymentFile = watch("paymentScreenshot");
+  const needAccommodation = watch("needAccommodation") || false;
   const watchedEmail = watch("email") || "";
-  const watchedMembers = watch("members") || [];
+  const watchedMembers = useMemo(() => watch("members") || [], [watch]);
   const isNitw = isNitwEmail(watchedEmail);
 
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
 
   // ── Fee calculation ────────────────────────────────────────────────────────
+  const gateMemberCount = useMemo(
+    () => getChargeableGateMembers({
+      isNitwLead: isNitw,
+      members: watchedMembers,
+      teamSize: TEAM_SIZE,
+    }),
+    [isNitw, watchedMembers]
+  );
+
   const { total, mode, competitionCount } = useMemo(() => {
     const comps = registrableEvents.filter(
       (e) =>
@@ -87,14 +103,14 @@ export default function Register() {
     if (selectedEventIds.length > 0) {
       const rate = GATE_FEE;
       return {
-        total: Math.min(rate * TEAM_SIZE, MAX_FEE),
+        total: Math.min(rate * gateMemberCount, MAX_FEE),
         mode: "gate",
         competitionCount: 0,
       };
     }
 
     return { total: 0, mode: null, competitionCount: 0 };
-  }, [selectedEventIds, registrableEvents]);
+  }, [gateMemberCount, selectedEventIds, registrableEvents]);
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(true);
@@ -128,6 +144,8 @@ export default function Register() {
       collegeName: data.college,
       idDocument: data.collegeId[0],
       paymentScreenshot: data.paymentScreenshot?.[0] || null,
+      accommodation: !!data.needAccommodation,
+      needAccommodation: !!data.needAccommodation,
       teamMembers: (data.members || []).map((member) => ({
         name: member.name,
         studentType: member.studentType,
@@ -295,6 +313,20 @@ export default function Register() {
               </div>
             </div>
 
+            <div className="rounded-xl border border-ui-border bg-ui-input p-4 sm:p-5">
+              <label className="flex items-center justify-between gap-4 cursor-pointer text-sm font-medium text-white">
+                <span>Need accommodation?</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-cyan-400"
+                  {...register("needAccommodation")}
+                />
+              </label>
+              <p className="mt-2 text-xs text-ui-muted">
+                Accommodation charges are standard and will be shared with you when you arrive.
+              </p>
+            </div>
+
           </section>
 
           <section hidden={step !== 3} className="registration-step space-y-6">
@@ -389,36 +421,43 @@ export default function Register() {
                 No events available yet.
               </div>
             ) : (
-              <div className="flex flex-wrap gap-3 pt-1">
-                {registrableEvents.map((ev) => {
-                  const eventVal = ev._id || ev.slug; // Fallback to slug if _id is missing
-                  const isChecked = selectedEventIds.includes(eventVal);
+              <div className="space-y-6 pt-1">
+                {groupedRegistrableEvents.map((group) => (
+                  <div key={group.key} className="space-y-3">
+                    <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-ui-accent">{group.label}</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {group.events.map((ev) => {
+                        const eventVal = ev._id || ev.slug;
+                        const isChecked = selectedEventIds.includes(eventVal);
 
-                  return (
-                    <label
-                      key={ev._id || ev.slug}
-                      className={`event-choice inline-flex items-center justify-center px-4 py-2.5 rounded-lg cursor-pointer select-none font-medium text-sm transition-colors border ${
-                        isChecked
-                          ? "event-choice-selected"
-                          : "bg-ui-input border-ui-border"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        value={eventVal}
-                        className="sr-only"
-                        {...register("events", { validate: value => (Array.isArray(value) && value.length > 0) || "Choose at least one event" })}
-                      />
-                      <span
-                        className={`transition-colors duration-150 ${
-                          isChecked ? "text-[#092126]" : "text-white"
-                        }`}
-                      >
-                        {ev.name}
-                      </span>
-                    </label>
-                  );
-                })}
+                        return (
+                          <label
+                            key={eventVal}
+                            className={`event-choice inline-flex items-center justify-center px-4 py-2.5 rounded-lg cursor-pointer select-none font-medium text-sm transition-colors border ${
+                              isChecked
+                                ? "event-choice-selected"
+                                : "bg-ui-input border-ui-border"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              value={eventVal}
+                              className="sr-only"
+                              {...register("events", { validate: value => (Array.isArray(value) && value.length > 0) || "Choose at least one event" })}
+                            />
+                            <span
+                              className={`transition-colors duration-150 ${
+                                isChecked ? "text-[#092126]" : "text-white"
+                              }`}
+                            >
+                              {ev.name}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             {errors.events && <p role="alert" className="registration-error">{errors.events.message}</p>}
@@ -439,7 +478,7 @@ export default function Register() {
                       {mode === "competition"
                         ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
                         : mode === "gate"
-                        ? `Gate Entry · ${TEAM_SIZE} Members × ₹${GATE_FEE}`
+                        ? `Gate Entry · ${gateMemberCount} Member${gateMemberCount === 1 ? "" : "s"} × ₹${GATE_FEE}`
                         : "No events selected yet"}
                     </p>
                     <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-2">
@@ -451,7 +490,8 @@ export default function Register() {
                   {mode === "gate" && (
                     <div className="text-xs text-ui-muted bg-ui-input border border-ui-border rounded-lg p-3 space-y-1 text-left">
                       <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
-                      <p>Fee: ₹{GATE_FEE} × {TEAM_SIZE} members = ₹{GATE_FEE * TEAM_SIZE}</p>
+                      <p>Fee: ₹{GATE_FEE} × {gateMemberCount} member{gateMemberCount === 1 ? "" : "s"} = ₹{Math.min(GATE_FEE * gateMemberCount, MAX_FEE)}</p>
+                      <p>🏨 <strong className="text-white">Accommodation</strong> — standard fee will be shared with you when you arrive.</p>
                     </div>
                   )}
                   {mode === "competition" && (
@@ -525,7 +565,7 @@ export default function Register() {
 
 
             <section hidden={step !== 5} className="registration-step registration-review">
-              <div className="registration-review-block"><div className="registration-review-label"><h3>Team lead</h3><button type="button" onClick={() => goTo(0)}>Edit details</button></div><p>{reviewName}</p><p>{watchedEmail}</p><p>{reviewCollege}</p>{isNitw && <p className="text-ui-muted">Roll number: {normalizeRollNumber(watch("rollNumber"))}</p>}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Team lead</h3><button type="button" onClick={() => goTo(0)}>Edit details</button></div><p>{reviewName}</p><p>{watchedEmail}</p><p>{reviewCollege}</p>{isNitw && <p className="text-ui-muted">Roll number: {normalizeRollNumber(watch("rollNumber"))}</p>}<p className="text-ui-muted">Accommodation: {needAccommodation ? "Yes" : "No"}</p></div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Your teammates</h3><button type="button" onClick={() => goTo(1)}>Edit team</button></div>{watchedMembers.map((member, index) => <p key={index}>{member.name} <span className="text-ui-muted">/ {member.studentType === "nitw" ? `NITW · ${normalizeRollNumber(member.rollNumber)}` : "Other institution"}</span></p>)}</div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Selected events</h3><button type="button" onClick={() => goTo(2)}>Edit events</button></div>{registrableEvents.filter(event => selectedEventIds.includes(event._id || event.slug)).map(event => <p key={event._id || event.slug}>{event.name}</p>)}</div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{isNitw ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
