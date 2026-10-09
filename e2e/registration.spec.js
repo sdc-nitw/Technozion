@@ -78,7 +78,7 @@ test("outsiders complete a single modal, retain files and teammates, and submit 
   await next(page);
   await expect(heading(page)).toHaveText("Payment.");
   await expect(page.getByText("62046706567", { exact: true })).toBeVisible();
-  await expect(page.locator(".registration-step:not([hidden])").getByText("₹800", { exact: true })).toBeVisible();
+  await expect(page.locator(".registration-step:not([hidden])").getByText("₹600", { exact: true })).toBeVisible();
   await next(page);
   await expect(page.getByText("Payment screenshot is required", { exact: true })).toBeVisible();
   await page.locator("#payment-screenshot").setInputFiles(payment);
@@ -126,7 +126,11 @@ test("mobile NITW registration skips payment, keeps rolls and traps focus in the
   await lead(page, "test@student.nitw.ac.in");
   await page.locator("#leader-roll-number").fill("00112233");
   await next(page);
-  for (let member = 2; member <= 4; member++) await page.getByRole("textbox", { name: `Member ${member} name`, exact: true }).fill(`Test Member ${member}`);
+  for (let member = 2; member <= 4; member++) {
+    await page.getByRole("textbox", { name: `Member ${member} name`, exact: true }).fill(`Test Member ${member}`);
+    await page.locator(`#member-${member - 2}-institution`).selectOption("nitw");
+    await page.locator(`#member-${member - 2}-roll`).fill(`00${member}1122`);
+  }
   await next(page);
   await page.getByText("Impact Tank", { exact: true }).click();
   await next(page);
@@ -143,6 +147,9 @@ test("mobile NITW registration skips payment, keeps rolls and traps focus in the
   await expect(page).toHaveURL(/registration-complete/);
   expect(state.payload.rollNumber).toBe("00112233");
   expect(state.payload.teamMembers).toHaveLength(3);
+  expect(state.payload.teamMembers[0].studentType).toBe("nitw");
+  expect(state.payload.teamMembers[1].studentType).toBe("nitw");
+  expect(state.payload.teamMembers[2].studentType).toBe("nitw");
   expect(state.payload.paymentScreenshotUrl).toBeNull();
   expect(state.uploads).toBe(1);
   expect(state.otpRequests).toBe(0);

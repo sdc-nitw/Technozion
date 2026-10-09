@@ -4,7 +4,7 @@ import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
 import {API_URL} from '../config'
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from '../components/utils/registrationChecks'
-import { getChargeableGateMembers, normalizeStudentType } from '../components/Register2/feeUtils'
+import { countExternalParticipants, normalizeStudentType } from '../components/Register2/feeUtils'
 
 const AuthContext = createContext()
 export const useAuth = () => useContext(AuthContext)
@@ -82,10 +82,9 @@ const AuthProvider = ({ children }) => {
       studentType: normalizeStudentType(member?.studentType),
       rollNumber: normalizeStudentType(member?.studentType) === 'nitw' ? normalizeRollNumber(member?.rollNumber) : undefined,
     })) : [];
-    const requiresPayment = !emailIsNitw || getChargeableGateMembers({
+    const requiresPayment = countExternalParticipants({
       isNitwLead: emailIsNitw,
       members: teamMembers,
-      teamSize: 4,
     }) > 0;
 
     if (emailIsNitw && !isValidNitwRollNumber(registrationData.rollNumber)) {

@@ -5,15 +5,14 @@ import EventsLoading from "../Events/EventsLoading";
 import "./registration-modal.css";
 import { useAuth } from "../../Context/AuthManager";
 import { isNitwEmail, isValidNitwRollNumber, normalizeRollNumber } from "../utils/registrationChecks";
-import { getChargeableGateMembers, groupRegistrationEvents, normalizeStudentType } from "./feeUtils";
-
-// ─── Fee constants ────────────────────────────────────────────────────────────
-const TEAM_SIZE = 4; // fixed team size
-const GATE_FEE = 200; // per-person gate entry fee
-const COMPETITION_FEE = 500; // per-team per-competition event fee
-const MAX_FEE = 2000; // cap if needed
+import {
+  computeRegistrationFee,
+  groupRegistrationEvents,
+  normalizeStudentType,
+} from "./feeUtils";
 
 // ─── Static config ────────────────────────────────────────────────────────────
+const TEAM_SIZE = 4; // fixed team size
 const CONTACT_EMAIL = "technozion@nitw.ac.in";
 
 // ─── Input / label styles (Matched to Patron theme) ───────────────────────────
@@ -70,58 +69,18 @@ export default function Register() {
   const needAccommodation = watch("needAccommodation") || false;
   const watchedEmail = watch("email") || "";
   const watchedMembersRaw = watch("members");
-  const watchedMembers = useMemo(() => watchedMembersRaw || [], [watchedMembersRaw]);
+  const watchedMembers = watchedMembersRaw || [];
   const isNitw = isNitwEmail(watchedEmail);
 
   const idLabel = isNitw ? "College ID Card" : "Aadhaar Card";
 
   // ── Fee calculation ────────────────────────────────────────────────────────
-  const gateMemberCount = useMemo(
-    () => getChargeableGateMembers({
-      isNitwLead: isNitw,
-      members: watchedMembers,
-      teamSize: TEAM_SIZE,
-    }),
-    [isNitw, watchedMembers]
-  );
-
-  const { total, mode, competitionCount } = useMemo(() => {
-    const comps = registrableEvents.filter(
-      (e) =>
-        selectedEventIds.includes(e._id || e.slug) &&
-        (e.eventType || e.type || "").toLowerCase().includes("competition")
-    ).length;
-
-    if (comps > 0) {
-      const rate = COMPETITION_FEE;
-      return {
-        total: Math.min(rate * comps, MAX_FEE),
-        mode: "competition",
-        competitionCount: comps,
-      };
-    }
-
-    if (selectedEventIds.length > 0) {
-      const rate = GATE_FEE;
-      return {
-        total: Math.min(rate * gateMemberCount, MAX_FEE),
-        mode: "gate",
-        competitionCount: 0,
-      };
-    }
-
-    return { total: 0, mode: null, competitionCount: 0 };
-  }, [gateMemberCount, selectedEventIds, registrableEvents]);
-
-  const requiresPayment = total > 0;
-  const allMembersAreNitw = useMemo(() => {
-    const leadNitw = isNitw;
-    const teammatesNitw = (watchedMembers || []).every((member) => {
-      if (!member || !member.name) return true;
-      return normalizeStudentType(member.studentType) === "nitw";
-    });
-    return leadNitw && teammatesNitw;
-  }, [isNitw, watchedMembers]);
+  const { total, mode, competitionCount, externalCount, requiresPayment } = computeRegistrationFee({
+    isNitwLead: isNitw,
+    members: watchedMembers,
+    selectedEventIds,
+    events: registrableEvents,
+  });
 
   // ── Modal state ──────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(true);
@@ -284,7 +243,7 @@ export default function Register() {
                     })}
                   />
                 </div>
-                <p className="text-xs text-ui-muted mt-2">{isNitw ? "NITW student · payment exempt." : "NITW students: use your institute email."}</p>
+                <p className="text-xs text-ui-muted mt-2">{isNitw ? "NITW student · team fee depends on members." : "NITW students: use your institute email."}</p>
                 {errors.email && (
                   <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
                 )}
@@ -483,8 +442,8 @@ export default function Register() {
             {errors.events && <p role="alert" className="registration-error">{errors.events.message}</p>}
           </section>
 
-          {/* Section 4: Payment (Hidden for NITW students) */}
-          <section hidden={step !== 4 || !requiresPayment} className="registration-step space-y-6">
+          {/* Section 4: Payment (Hidden when total is 0) */}
+          <section hidden={step !== 4 || total <= 0} className="registration-step space-y-6">
               <div className="space-y-2">
                 <p className="text-sm text-ui-muted">Transfer your registration fee to the account below, then attach the payment screenshot.</p>
               </div>
@@ -495,9 +454,9 @@ export default function Register() {
                   <div className="space-y-1">
                     <p className="text-sm text-ui-muted">
                       {mode === "competition"
-                        ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹${COMPETITION_FEE}`
+                        ? `${competitionCount} Competition${competitionCount > 1 ? "s" : ""} × ₹500`
                         : mode === "gate"
-                        ? `Gate Entry · ${gateMemberCount} Member${gateMemberCount === 1 ? "" : "s"} × ₹${GATE_FEE}`
+                        ? `Gate Entry · ${externalCount} Member${externalCount === 1 ? "" : "s"} × ₹200`
                         : "No events selected yet"}
                     </p>
                     <div className="text-4xl font-black tracking-tight text-white flex items-baseline gap-2">
@@ -509,14 +468,14 @@ export default function Register() {
                   {mode === "gate" && (
                     <div className="text-xs text-ui-muted bg-ui-input border border-ui-border rounded-lg p-3 space-y-1 text-left">
                       <p>🎟️ <strong className="text-white">Gate Entry</strong> — covers access to all Demonstrations &amp; Games.</p>
-                      <p>Fee: ₹{GATE_FEE} × {gateMemberCount} member{gateMemberCount === 1 ? "" : "s"} = ₹{Math.min(GATE_FEE * gateMemberCount, MAX_FEE)}</p>
+                      <p>Fee: ₹200 × {externalCount} member{externalCount === 1 ? "" : "s"} = ₹{Math.min(200 * externalCount, 2000)}</p>
                       <p>🏨 <strong className="text-white">Accommodation</strong> — standard fee will be shared with you when you arrive.</p>
                     </div>
                   )}
                   {mode === "competition" && (
                     <div className="text-xs text-ui-muted bg-ui-input border border-ui-border rounded-lg p-3 space-y-1 text-left">
                       <p>🏆 <strong className="text-white">Competition</strong> — charged per event per team.</p>
-                      <p>Fee: ₹{COMPETITION_FEE} × {competitionCount} event{competitionCount > 1 ? "s" : ""} = ₹{Math.min(COMPETITION_FEE * competitionCount, MAX_FEE)}</p>
+                      <p>Fee: ₹500 × {competitionCount} event{competitionCount > 1 ? "s" : ""} = ₹{Math.min(500 * competitionCount, 2000)}</p>
                     </div>
                   )}
                 </div>
@@ -585,7 +544,7 @@ export default function Register() {
               <div className="registration-review-block"><div className="registration-review-label"><h3>Team lead</h3><button type="button" onClick={() => goTo(0)}>Edit details</button></div><p>{reviewName}</p><p>{watchedEmail}</p><p>{reviewCollege}</p>{isNitw && <p className="text-ui-muted">Roll number: {normalizeRollNumber(watch("rollNumber"))}</p>}<p className="text-ui-muted">Accommodation: {needAccommodation ? "Yes" : "No"}</p></div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Your teammates</h3><button type="button" onClick={() => goTo(1)}>Edit team</button></div>{watchedMembers.map((member, index) => <p key={index}>{member.name} <span className="text-ui-muted">/ {member.studentType === "nitw" ? `NITW · ${normalizeRollNumber(member.rollNumber)}` : "Other institution"}</span></p>)}</div>
               <div className="registration-review-block"><div className="registration-review-label"><h3>Selected events</h3><button type="button" onClick={() => goTo(2)}>Edit events</button></div>{registrableEvents.filter(event => selectedEventIds.includes(event._id || event.slug)).map(event => <p key={event._id || event.slug}>{event.name}</p>)}</div>
-              <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{allMembersAreNitw ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
+              <div className="registration-review-block"><div className="registration-review-label"><h3>Documents & payment</h3><button type="button" onClick={() => goTo(3)}>Edit documents</button></div><p>{idLabel}: {collegeIdFile?.[0]?.name}</p>{total <= 0 ? <p className="registration-exempt">NITW registration · payment exempt</p> : <><p>Payment screenshot: {paymentFile?.[0]?.name}</p><p className="registration-review-total">Total <strong>₹{total}</strong></p><button type="button" className="registration-text-button" onClick={() => goTo(4)}>Edit payment</button></>}</div>
             </section>
           </div>
           <footer className="registration-modal-footer">
