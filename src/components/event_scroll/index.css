@@ -1,98 +1,185 @@
-.outer-container {
-  position: relative;
-  width: 100%;
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+
+/* Global reset (scoped to this page so fonts don't leak elsewhere) */
+.outer-container,
+.outer-container * {
+  font-family: "Raleway", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
 }
 
-.tabs-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.tabs {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tab-button {
-  min-height: 44px;
-  padding: 10px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-input);
-  color: var(--color-muted);
-  font-size: .75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 160ms, border-color 160ms;
-}
-
-.tab-button:hover {
-  background: #182d38;
-  border-color: #547582;
-  color: var(--color-text);
-}
-
-.tab-button.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #092126;
-}
-
-.inner-container {
-  width: 100%;
-  padding-block: 24px;
-}
-
-.society-heading {
-  text-align: center;
-  margin: 24px 0;
-}
-
-.fetch-error {
-  color: #fca5a5;
-  text-align: center;
-  margin-block: 40px;
-}
-
+/* -------------------------
+   Heading / heading image
+   ------------------------- */
 .heading-image-container {
   text-align: center;
 }
 
 .heading-image {
-  max-width: 100%;
-  max-height: 160px;
+  max-width: 40%; /* Adjust size */
+  height: 300px;
+}
+
+/* -------------------------
+   Layout containers
+   ------------------------- */
+.outer-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 20px;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* No scroll on the outer container */
+  width: 100%;
+}
+
+.poster-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Tabs wrapper sits above canvas */
+.tabs-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+  position: relative;
+ 
+}
+
+/* -------------------------
+   Tabs (buttons)
+   ------------------------- */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: .5em;
+}
+
+/* Tab buttons */
+.tab-button {
+  border: 2px solid rgba(0, 255, 230, 0.9);
+  background: rgba(7, 32, 38, 0.9);
+  color: #ffffff;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  box-shadow: 0 0 18px rgba(22, 246, 243, 0.3);
+  z-index: 12;
+}
+
+/* Active / selected state */
+.tab-button.active {
+  background: linear-gradient(135deg, #16f6f3 0%, #00b3ff 100%);
+  color: #031318;
+  border-color: #16f6f3;
+  box-shadow: 0 8px 26px rgba(22, 246, 243, 0.5),
+    inset 0 0 0 2px rgba(3, 19, 24, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Hover (kept fully solid so text is always readable) */
+.tab-button:hover {
+  background: linear-gradient(135deg, #16f6f3 0%, #00b3ff 100%);
+  color: #031318;
+  border-color: #16f6f3;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(22, 246, 243, 0.55),
+    inset 0 0 0 2px rgba(3, 19, 24, 0.15);
+}
+
+/* -------------------------
+   Heading image container
+   ------------------------- */
+.heading {
+  height: 1rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  /* margin-top: 1.2rem; */
+}
+
+.heading-image {
+  /* height: 50%; */
+  /* overflow: hidden; */
   object-fit: contain;
 }
 
-.events-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 24px 16px;
+/* -------------------------
+   Inner scrollable area
+   ------------------------- */
+.inner-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%; /* leave room for heading and tabs */
+  overflow-y: scroll;
+  padding-bottom: 3rem;
+  box-sizing: border-box;
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For IE and Edge */
 }
 
-@media(max-width: 1023px) {
-  .events-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.inner-container::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, Opera */
 }
 
-@media(max-width: 767px) {
-  .events-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* -------------------------
+Posters grid
+------------------------- */
+
+.society-heading {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Error / no-data messages */
+.fetch-error {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 3rem;
+  font-weight: 600;
+}
+
+/* -------------------------
+   Responsive tweaks
+   ------------------------- */
+
+
+@media (max-width: 768px) {
+ 
+
   .tab-button {
-    padding-inline: 12px;
-    font-size: .7rem;
+    padding: .5rem .4rem;
+    font-size: 0.7rem;
+    border-radius: 8px;
+    min-width: 6rem;
   }
-}
-
-@media(max-width: 479px) {
-  .events-grid {
-    grid-template-columns: 1fr;
-    max-width: 340px;
-    margin-inline: auto;
+ 
+  .tabs {
+    gap: .4rem;
+    width: 100%;
+    align-items: center;
+    /* background: red; */
+    margin-bottom: .5em;
+    
   }
 }

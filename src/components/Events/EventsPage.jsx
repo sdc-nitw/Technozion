@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { WebCanvas } from "../bg_animation/bg_animate";
 import Poster from "../event_scroll/poster";
 import {Loader} from "../Loader/index"
 import { fetchEvents } from "./eventsData";
-import { gsap, useGSAP, motionConditions, observeSceneMeasurements } from "../../animation/gsap";
-import "../Experience/experience.css";
 import "../PastEvents/PastEvents.css";
 import "../event_scroll/index.css";
 
@@ -20,7 +19,6 @@ const hasPoster = (event) =>
 
 export const EventsPage = () => {
   const navigate = useNavigate();
-  const catalogue = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +40,7 @@ export const EventsPage = () => {
       isMounted = false;
     };
   }, []);
-  const filteredEvents = useMemo(() => events.filter((ev) => {
+  const filteredEvents = events.filter((ev) => {
     if (selectedCategory === "all") return true;
     const typeLower = (ev.eventType || "").toLowerCase();
     if (selectedCategory === "competition") {
@@ -58,20 +56,7 @@ export const EventsPage = () => {
       return typeLower.includes("workshop");
     }
     return true;
-  }).sort((a, b) => Number(hasPoster(b)) - Number(hasPoster(a))), [events, selectedCategory]);
-
-  useGSAP(() => {
-    if (!catalogue.current) return;
-    const mm = gsap.matchMedia();
-    mm.add(motionConditions, ({ conditions }) => {
-      if (conditions.reduce) return;
-      gsap.utils.toArray(".catalogue-item", catalogue.current).forEach((item, index) => {
-        gsap.from(item, { y: 32, opacity: 0, duration: .55, delay: (index % 5) * .04, ease: "power2.out", scrollTrigger: { trigger: item, start: "top 94%", once: true } });
-      });
-    });
-    const stopMeasuring = observeSceneMeasurements(catalogue.current);
-    return () => { stopMeasuring(); mm.revert(); };
-  }, { scope: catalogue, dependencies: [filteredEvents], revertOnUpdate: true });
+  }).sort((a, b) => Number(hasPoster(b)) - Number(hasPoster(a)));
 
   const eventCount = filteredEvents.length;
   const countLabel =
@@ -89,10 +74,13 @@ export const EventsPage = () => {
   };
   
  return (
-    <div className="past-events-root festival-events" aria-busy={isLoading}>
+    <div className="past-events-root">
+      <div className="past-events-canvas">
+        <WebCanvas />
+      </div>
 
       {/* Added pt-20 md:pt-28 to clear the floating navbar tz logo */}
-      <div className="edition-view-container">
+      <div className="edition-view-container pt-12 md:pt-16">
         {/* Top Header Bar */}
         <div className="edition-topbar">
           <div className="edition-topbar-row">
@@ -120,19 +108,18 @@ export const EventsPage = () => {
           </div>
         </div>
 
-
-        {/* Complete, directly accessible event catalogue. */}
-        <div className="edition-content-body" id="event-catalogue" ref={catalogue} tabIndex={-1}>
-          <div className="catalogue-heading"><p className="scene-eyebrow">FIND YOUR NEXT CHALLENGE</p><h2>ALL EVENTS<span>.</span></h2></div>
-          <div className="events-grid">
+        {/* Events Grid */}
+        <div className="edition-content-body">
+          <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-x-4 gap-y-8 lg:gap-y-10 lg:m-6 m-3">
             {filteredEvents.map((item, index) => (
-              <div className="catalogue-item" key={item._id || item.slug || index}><Poster
+              <Poster
+                key={item._id || item.slug || index}
                 imageSrc={item.imgsrc || ""}
                 fallbackSrc=""
                 title={item.name}
                 content={item.club}
                 onClick={() => handlePosterClick(item)}
-              /></div>
+              />
             ))}
           </div>
           {isLoading && <Loader/>}

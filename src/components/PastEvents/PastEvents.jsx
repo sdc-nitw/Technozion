@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { WebCanvas } from "../bg_animation/bg_animate";
 import YearTiles from "./YearTiles";
 import YearView2025 from "./YearView2025";
 import "./PastEvents.css";
@@ -22,6 +23,9 @@ export const PastEvents = () => {
 
   return (
     <div className="past-events-root">
+      <div className="past-events-canvas">
+        <WebCanvas />
+      </div>
 
       {year === "2025" ? (
         <YearView2025 onBack={handleBackToYears} />

@@ -1,5 +1,4 @@
 import React from "react";
-import DepthSurface from "../ui/DepthSurface";
 import { FaCalendarAlt, FaUsers, FaLaptopCode, FaRocket } from "react-icons/fa";
 import { BsArrowRight } from "react-icons/bs";
 
@@ -39,15 +38,14 @@ export const YearTiles = ({ onSelectYear }) => {
       {/* Grid of Year Cards (Currently featuring 2025) */}
       <div className="year-tiles-grid">
         {EDITIONS.map((edition) => (
-          <DepthSurface
+          <div
             key={edition.year}
             className="year-card-2025"
             onClick={() => onSelectYear(edition.year)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                e.preventDefault();
+              if (e.key === "Enter" || e.key === " ") {
                 onSelectYear(edition.year);
               }
             }}
@@ -102,7 +100,7 @@ export const YearTiles = ({ onSelectYear }) => {
                 <BsArrowRight className="explore-arrow" />
               </button>
             </div>
-          </DepthSurface>
+          </div>
         ))}
       </div>
     </div>

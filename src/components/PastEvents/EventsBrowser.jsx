@@ -104,7 +104,7 @@ export const EventsBrowser = () => {
         <h2 className="society-heading text-xl md:text-2xl text-cyan-300 font-bold mb-4 tracking-wider uppercase">
           {society.societyName}
         </h2>
-        <div className="events-grid">
+        <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-x-4 gap-y-8 lg:gap-y-10 lg:m-6 m-3">
           {society.events?.map((event, index) => (
             <Poster
               key={`event-${sIdx}-${index}-${event.title || index}`}
@@ -154,7 +154,7 @@ export const EventsBrowser = () => {
         ) : selectedTab === "societies" ? (
           renderSocieties()
         ) : (
-          <div className="events-grid">
+          <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-x-4 gap-y-8 lg:gap-y-10 lg:m-6 m-3">
             {data.map((item, index) => (
               <Poster
                 key={index}
