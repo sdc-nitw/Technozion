@@ -1,12 +1,3 @@
-const normalizeStudentType = (value) => {
-  const normalized = String(value ?? "").trim().toLowerCase();
-
-  if (["nitw", "nitw-student"].includes(normalized)) return "nitw";
-  if (["external", "other", "non-nitw", "nonnitw", "other-institution"].includes(normalized)) return "external";
-
-  return normalized || "external";
-};
-
 export const normalizeStudentType = (value) => {
   const normalized = String(value ?? "").trim().toLowerCase();
 

@@ -137,17 +137,11 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
       return { ok: false, message: 'Please enter a valid email address.' };
     }
-    if (requiresPayment) {
-      if (registrationData.paymentScreenshot) {
-        const paymentFile = Array.isArray(registrationData.paymentScreenshot)
-          ? registrationData.paymentScreenshot[0]
-          : registrationData.paymentScreenshot;
-        paymentScreenshotUrl = await uploadToCloudinary(paymentFile, "Payment screenshot");
-      } else {
-        notify('A valid payment screenshot upload is required when any team member is not from NITW.', { variant: 'error' })
-        setLoading(false);
-        return { ok: false, message: 'A valid payment screenshot upload is required when any team member is not from NITW.' };
-      }
+    if (requiresPayment && registrationData.paymentScreenshot) {
+      const paymentFile = Array.isArray(registrationData.paymentScreenshot)
+        ? registrationData.paymentScreenshot[0]
+        : registrationData.paymentScreenshot;
+      paymentScreenshotUrl = await uploadToCloudinary(paymentFile, "Payment screenshot");
     }
     
 
