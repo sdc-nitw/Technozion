@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FiArrowDown, FiArrowUpRight } from "react-icons/fi";
 import TechCore from "./TechCore";
 import TextReveal from "../Experience/TextReveal";
+import tzText from "../../assets/tz_text.png";
 import { gsap, useGSAP, motionConditions, observeSceneMeasurements } from "../../animation/gsap";
 import './index.css';
 
@@ -92,7 +93,7 @@ export default function Hero() {
     <div className="hero-pin">
       <div className="hero-grid-layer" aria-hidden="true" />
       <div className="hero-energy" aria-hidden="true"><span /><span /><span /></div>
-      <div className="hero-brand-reveal"><div className="hero-wordmark"><img src="/tz_text.png" alt="TECHNOZION" /></div></div>
+      <div className="hero-brand-reveal"><div className="hero-wordmark"><img src={tzText} alt="TECHNOZION" /></div></div>
       <h1 className="hero-title sr-only">TECHNOZION 2026</h1>
       <div className="hero-core"><TechCore controlled /></div>
       <div className="hero-display">

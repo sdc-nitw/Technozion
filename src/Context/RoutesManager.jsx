@@ -11,7 +11,6 @@ import PastEvents from '../components/PastEvents/PastEvents.jsx';
 import { ComingSoon } from "../components/ComingSoon/ComingSoon.jsx";
 import Register from '../components/Register2/Register.jsx';
 import RegistrationReceipt from '../components/Register2/RegistrationReceipt.jsx';
-import VerifyEmail from "../components/Login/VerifyEmail";
 
 const RoutesManager = () => {
 	const { pathname, hash } = useLocation();
@@ -50,7 +49,6 @@ const RoutesManager = () => {
 			<Route path="/auth/login" element={<Navigate to="/register" replace />} />
 			<Route path="/auth/register" element={<Navigate to="/register" replace />} />
 			<Route path="/login" element={<Navigate to="/register" replace />} />
-			<Route path="/verify-email" element={<VerifyEmail />} />
 
 			<Route path="/" element={<Home />} />
 			<Route path="/register" element={<Register />} />

@@ -55,11 +55,7 @@ const AuthProvider = ({ children }) => {
         persistSession(data)
         setUser(data.user)
         navigate('/')
-      } else if (data.code === 'EMAIL_NOT_VERIFIED') {
-        notify(data.message || 'Please verify your email before logging in.', { variant: 'error' })
-        return { notVerified: true, email: data.email || email }
       } else {
-        // show error snackbar
         notify(data.message || 'Login failed', { variant: 'error' })
       }
     } catch (err) {
@@ -184,9 +180,8 @@ const AuthProvider = ({ children }) => {
       return { ok: false, message };
     }
     if (res.ok) {
-    // No session yet: the user must verify their email first, then log in
-    notify(data.message || 'Account created. Check your email to verify it.', { variant: 'success' })
-    navigate("/registration-complete", { state: { verifyEmail: data.email || payload.email, participants: data.participants || [] } });
+    notify(data.message || 'Account created successfully.', { variant: 'success' })
+    navigate("/registration-complete", { state: { participants: data.participants || [] } });
     return { ok: true };
     }
     else {
