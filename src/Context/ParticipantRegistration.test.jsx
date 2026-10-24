@@ -58,7 +58,7 @@ test("registration forwards NITW roll and all member identities and shows server
   expect(payload.rollNumber).toBe("00123456");
   expect(payload.teamMembers).toEqual(teamMembers);
   expect(payload.participantId).toBeUndefined();
-  expect(mockNavigate).toHaveBeenCalledWith("/registration-complete", { state: { verifyEmail: "test@nitw.ac.in", participants } });
+  expect(mockNavigate).toHaveBeenCalledWith("/registration-complete", { state: { participants } });
 });
 
 test("missing NITW roll is rejected before uploads or registration requests", async () => {

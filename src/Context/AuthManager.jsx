@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
@@ -44,8 +44,8 @@ const AuthProvider = ({ children }) => {
   const { notify } = useSnackbar()
   const [otpRequired, setOtpRequired] = useState(false)
 
-  // Ask the backend whether email verification is switched on
-  useEffect(() => {
+  // Ask the backend whether email verification is switched on (called by the registration form)
+  const loadOtpConfig = React.useCallback(() => {
     fetch(`${url}/api/auth/config`).then(r => r.json()).then(d => setOtpRequired(!!d.otpRequired)).catch(() => {})
   }, [url])
 
@@ -245,7 +245,7 @@ const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, setLoading, otpRequired, sendOtp }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, setLoading, otpRequired, sendOtp, loadOtpConfig }}>
       {/* {loading ? <Loader /> : children} */}
       {loading && <Loader />}
       {children}    

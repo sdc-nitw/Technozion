@@ -135,7 +135,8 @@ export default function Register() {
   const reviewCollege = watch("college");
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const { register: authRegister, loading: authLoading, otpRequired, sendOtp } = useAuth();
+  const { register: authRegister, loading: authLoading, otpRequired, sendOtp, loadOtpConfig } = useAuth();
+  useEffect(() => { loadOtpConfig?.(); }, [loadOtpConfig]);
   const [otpState, setOtpState] = useState({ sentTo: "", message: "", error: false, cooldown: 0, sending: false });
 
   useEffect(() => {
