@@ -12,6 +12,8 @@ import {
 } from "./feeUtils";
 
 const CONTACT_EMAIL = "sec_technical@nitw.ac.in";
+const OTP_MAX_SENDS = 3;
+const OTP_BASE_COOLDOWN = 60; // seconds, doubles after every send
 
 const inputCls =
   "ui-input w-full px-4 py-2.5 rounded-lg bg-ui-input border border-ui-border text-white placeholder-neutral-500 outline-none focus:outline-none focus:border-ui-accent transition-all duration-200";
@@ -137,7 +139,7 @@ export default function Register() {
   // ── Submit ─────────────────────────────────────────────────────────────────
   const { register: authRegister, loading: authLoading, otpRequired, sendOtp, loadOtpConfig } = useAuth();
   useEffect(() => { loadOtpConfig?.(); }, [loadOtpConfig]);
-  const [otpState, setOtpState] = useState({ sentTo: "", message: "", error: false, cooldown: 0, sending: false });
+  const [otpState, setOtpState] = useState({ sentTo: "", message: "", error: false, cooldown: 0, sending: false, sends: 0 });
 
   useEffect(() => {
     if (otpState.cooldown <= 0) return;
@@ -150,7 +152,21 @@ export default function Register() {
     const email = (watch("email") || "").trim().toLowerCase();
     setOtpState(prev => ({ ...prev, sending: true, message: "" }));
     const result = await sendOtp(email);
-    setOtpState({ sentTo: result.ok ? email : "", message: result.message, error: !result.ok, cooldown: result.ok ? 60 : 0, sending: false });
+    setOtpState(prev => {
+      if (!result.ok) return { ...prev, sentTo: "", message: result.message, error: true, cooldown: 0, sending: false };
+      const sends = prev.sends + 1;
+      const limitReached = sends >= OTP_MAX_SENDS;
+      return {
+        sentTo: email,
+        message: limitReached
+          ? "That was the last code we can send for now. If it has not arrived, check spam, then refresh the page and try again in 1 hour."
+          : result.message,
+        error: false,
+        cooldown: limitReached ? 0 : OTP_BASE_COOLDOWN * 2 ** (sends - 1), // 60s, 120s, 240s
+        sending: false,
+        sends,
+      };
+    });
   };
   
   const onSubmit = async (data) => {
@@ -374,8 +390,8 @@ export default function Register() {
                           setValueAs: value => String(value || "").trim(),
                         })}
                       />
-                      <button type="button" className="ui-button whitespace-nowrap" disabled={otpState.sending || otpState.cooldown > 0} onClick={requestCode}>
-                        {otpState.sending ? "Sending…" : otpState.cooldown > 0 ? `Resend in ${otpState.cooldown}s` : otpState.sentTo ? "Resend code" : "Send code"}
+                      <button type="button" className="ui-button whitespace-nowrap" disabled={otpState.sending || otpState.cooldown > 0 || otpState.sends >= OTP_MAX_SENDS} onClick={requestCode}>
+                        {otpState.sending ? "Sending…" : otpState.sends >= OTP_MAX_SENDS ? "Limit reached" : otpState.cooldown > 0 ? `Resend in ${otpState.cooldown}s` : otpState.sentTo ? "Resend code" : "Send code"}
                       </button>
                     </div>
                     {otpState.message && <p className={`text-xs mt-1.5 ${otpState.error ? "text-red-400" : "text-ui-muted"}`} role="status">{otpState.message}</p>}
