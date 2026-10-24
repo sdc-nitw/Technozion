@@ -12,7 +12,6 @@ export default function RegistrationReceipt() {
           <p className="text-cyan-300 text-xs font-bold uppercase tracking-widest">Registration received</p>
           <h1 className="text-3xl font-bold">Your participant IDs</h1>
           <p className="text-ui-muted text-sm">Save these IDs for event check-in. NITW participants use their roll numbers.</p>
-          <p className="text-ui-muted text-sm">Check {state.verifyEmail || "your email"} for your account verification link.</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           {participants.map((participant) => (
