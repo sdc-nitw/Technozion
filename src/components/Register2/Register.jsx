@@ -135,7 +135,22 @@ export default function Register() {
   const reviewCollege = watch("college");
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const { register: authRegister, loading: authLoading } = useAuth();
+  const { register: authRegister, loading: authLoading, otpRequired, sendOtp } = useAuth();
+  const [otpState, setOtpState] = useState({ sentTo: "", message: "", error: false, cooldown: 0, sending: false });
+
+  useEffect(() => {
+    if (otpState.cooldown <= 0) return;
+    const timer = setTimeout(() => setOtpState(prev => ({ ...prev, cooldown: prev.cooldown - 1 })), 1000);
+    return () => clearTimeout(timer);
+  }, [otpState.cooldown]);
+
+  const requestCode = async () => {
+    if (!await trigger("email", { shouldFocus: true })) return;
+    const email = (watch("email") || "").trim().toLowerCase();
+    setOtpState(prev => ({ ...prev, sending: true, message: "" }));
+    const result = await sendOtp(email);
+    setOtpState({ sentTo: result.ok ? email : "", message: result.message, error: !result.ok, cooldown: result.ok ? 60 : 0, sending: false });
+  };
   
   const onSubmit = async (data) => {
     const activeTeamMembers = selectedTeamSize > 1
@@ -163,10 +178,14 @@ export default function Register() {
       events: data.events || [],
       registrationType: selectedTeamSize > 1 ? "team" : "individual",
       password: data.password,
+      otp: data.otp,
     };
 
     const result = await authRegister(payload);
-    if (result?.ok === false) setStepError(result.message);
+    if (result?.ok === false) {
+      setStepError(result.message);
+      if (/verification code/i.test(result.message || "")) setStep(0);
+    }
   };
 
   const busy = isSubmitting || authLoading;
@@ -192,7 +211,7 @@ export default function Register() {
   const nextStep = async () => {
     if (busy) return;
     const fieldsToValidate = step === 0
-      ? ["name", "gender", "email", "password", "college", ...(isNitw ? ["rollNumber"] : [])]
+      ? ["name", "gender", "email", "password", "college", ...(isNitw ? ["rollNumber"] : []), ...(otpRequired ? ["otp"] : [])]
       : step === 1
       ? activeMembers.flatMap((member, index) => {
           const memberType = watch(`members.${index}.studentType`) || member?.studentType || "external";
@@ -224,7 +243,7 @@ export default function Register() {
   };
 
   const onInvalid = invalid => {
-    const target = ["name", "gender", "email", "password", "college", "rollNumber"].some(field => invalid[field])
+    const target = ["name", "gender", "email", "password", "college", "rollNumber", "otp"].some(field => invalid[field])
       ? 0
       : invalid.members && selectedTeamSize > 1
       ? 1
@@ -334,6 +353,35 @@ export default function Register() {
                   </p>
                   {errors.email && <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>}
                 </div>
+
+                {otpRequired && (
+                  <div>
+                    <label htmlFor="email-otp" className={labelCls}>Email verification code</label>
+                    <div className="flex gap-2">
+                      <input
+                        id="email-otp"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="6-digit code"
+                        className={inputCls}
+                        {...register("otp", {
+                          shouldUnregister: true,
+                          required: "Enter the code we emailed you",
+                          pattern: { value: /^\d{6}$/, message: "The code is 6 digits" },
+                          setValueAs: value => String(value || "").trim(),
+                        })}
+                      />
+                      <button type="button" className="ui-button whitespace-nowrap" disabled={otpState.sending || otpState.cooldown > 0} onClick={requestCode}>
+                        {otpState.sending ? "Sending…" : otpState.cooldown > 0 ? `Resend in ${otpState.cooldown}s` : otpState.sentTo ? "Resend code" : "Send code"}
+                      </button>
+                    </div>
+                    {otpState.message && <p className={`text-xs mt-1.5 ${otpState.error ? "text-red-400" : "text-ui-muted"}`} role="status">{otpState.message}</p>}
+                    {!otpState.message && <p className="text-xs text-ui-muted mt-1.5">We will email you a code to confirm this address. Check your spam folder if it does not arrive.</p>}
+                    {errors.otp && <p className="text-red-400 text-xs mt-1.5">{errors.otp.message}</p>}
+                  </div>
+                )}
 
                 {isNitw && (
                   <div>

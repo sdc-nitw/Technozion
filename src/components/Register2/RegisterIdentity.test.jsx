@@ -5,13 +5,15 @@ import { Simulate } from "react-dom/test-utils";
 import Register from "./Register";
 import { fetchEvents } from "../Events/eventsData";
 
-jest.mock("../../Context/AuthManager", () => ({ useAuth: () => ({ register: jest.fn(), loading: false }) }));
+let mockOtpRequired = false;
+jest.mock("../../Context/AuthManager", () => ({ useAuth: () => ({ register: jest.fn(), loading: false, otpRequired: mockOtpRequired, sendOtp: jest.fn() }) }));
 jest.mock("../Events/eventsData", () => ({ fetchEvents: jest.fn(), getCachedEvents: () => null }));
 jest.mock("../bg_animation/bg_animate", () => ({ WebCanvas: () => null }));
 
 let root;
 let container;
 beforeEach(() => {
+  mockOtpRequired = false;
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -54,4 +56,15 @@ test("each teammate can independently select NITW and supply a roll number", asy
   await change(institution, "external");
   expect(container.querySelector('#member-0-roll')).toBeNull();
   expect(container.querySelectorAll('[aria-label^="Member "][aria-label$=" name"]')).toHaveLength(3);
+});
+
+test("the email verification code field only appears when the backend requires it", async () => {
+  await mountRegister();
+  expect(container.querySelector('#email-otp')).toBeNull();
+  act(() => root.unmount());
+  root = createRoot(container);
+  mockOtpRequired = true;
+  await mountRegister();
+  expect(container.querySelector('#email-otp')).not.toBeNull();
+  expect(container.textContent).toContain("Send code");
 });

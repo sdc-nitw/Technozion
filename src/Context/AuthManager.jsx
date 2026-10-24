@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader } from '../components/Loader'
 import { useSnackbar } from './SnackbarProvider'
@@ -42,6 +42,26 @@ const AuthProvider = ({ children }) => {
   const navigate = useNavigate()
   const url = API_URL;
   const { notify } = useSnackbar()
+  const [otpRequired, setOtpRequired] = useState(false)
+
+  // Ask the backend whether email verification is switched on
+  useEffect(() => {
+    fetch(`${url}/api/auth/config`).then(r => r.json()).then(d => setOtpRequired(!!d.otpRequired)).catch(() => {})
+  }, [url])
+
+  const sendOtp = async (email) => {
+    try {
+      const res = await fetch(`${url}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      return { ok: res.ok, message: data.message || (res.ok ? 'Code sent.' : 'Could not send the code. Please try again.') }
+    } catch {
+      return { ok: false, message: 'Could not reach the server. Check your connection and try again.' }
+    }
+  }
   const login = async (email, password) => {
     setLoading(true)
     try {
@@ -159,6 +179,7 @@ const AuthProvider = ({ children }) => {
       registrationType: registrationData.registrationType,
       idDocumentUrl,
       paymentScreenshotUrl,
+      otp: registrationData.otp || undefined,
     };
     // Send JSON with URLs to backend
     requestStage = "registration";
@@ -224,7 +245,7 @@ const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, setLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, setLoading, otpRequired, sendOtp }}>
       {/* {loading ? <Loader /> : children} */}
       {loading && <Loader />}
       {children}    
