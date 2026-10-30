@@ -7,8 +7,8 @@
     "type": "Game",
     "teamSize": "1",
     "duration": "2 Days",
-    "imgsrc": "/posters26/SDC_GAMES.jpg",
-    "poster": "/posters26/SDC_GAMES.jpg",
+    "imgsrc": "/posters26/sdcgames2.jpg",
+    "poster": "/posters26/sdcgames2.jpg",
     "description": "A 2-day multi-domain challenge covering AI/ML, Coding, Cyber Security, Web Development, Design, and PR. Day 1 tests multiple independent wings; Day 2 combines finalists into common cross-domain scenario challenges.",
     "rules": "Day 1 has 3 technical rounds + 1 non-technical fun round. Participants cannot pick the same technical domain twice on Day 1. Top scorers advance to Day 2.",
     "poc": "Vedant Vinod Kasat (8976407707)"
